@@ -37,7 +37,7 @@ export const LANGUAGE_LOCALE: Record<Language, string> = {
 /** How often the client re-fetches live data, in milliseconds. */
 export const PRICE_REFRESH_INTERVAL_MS = 60_000;
 
-/** Cron expressions the Worker is triggered on (must match wrangler.jsonc). */
+/** Cron expressions the Worker is triggered on (scheduled by node-cron in apps/api). */
 export const CRON = {
   EVERY_MINUTE: '* * * * *',
   HOURLY: '0 * * * *',

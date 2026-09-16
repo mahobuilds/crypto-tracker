@@ -1,5 +1,6 @@
 import type { CoinSearchResult, FxRates, PriceQuote } from '@crypto-tracker/shared';
 import type { CoinResolver, FxProvider, PriceProvider } from '../contracts';
+import type { Env } from '../env';
 import {
   CACHE_TTL,
   coinResolveKey,

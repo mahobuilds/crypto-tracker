@@ -28,7 +28,7 @@ export function createPushRoutes(): Hono<AppEnv> {
   return new Hono<AppEnv>()
     .use(requireAuth)
     .get('/vapid-public-key', (c) => {
-      const publicKey = c.env.VAPID_PUBLIC_KEY;
+      const publicKey = c.get('env').VAPID_PUBLIC_KEY;
       if (!publicKey) {
         throw new ApiError(500, 'NOT_CONFIGURED', 'Push notifications are not configured');
       }

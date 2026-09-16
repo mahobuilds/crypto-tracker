@@ -1,11 +1,12 @@
-/** Typed helpers over the `CACHE` KV namespace, plus the cache key builders services use. */
+/** Typed helpers over the in-memory `CACHE`, plus the cache key builders services use. */
+import type { MemoryCache } from '../lib/memory-cache';
 
-export async function getJson<T>(kv: KVNamespace, key: string): Promise<T | null> {
+export async function getJson<T>(kv: MemoryCache, key: string): Promise<T | null> {
   return kv.get<T>(key, 'json');
 }
 
 export async function putJson<T>(
-  kv: KVNamespace,
+  kv: MemoryCache,
   key: string,
   value: T,
   ttlSeconds?: number,

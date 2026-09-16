@@ -9,6 +9,7 @@ import {
   type TransactionLike,
 } from '@crypto-tracker/shared';
 import type { Database } from '../db/client';
+import type { Env } from '../env';
 import { portfolioSnapshots, transactions, type TransactionRow } from '../db/schema';
 import { newId } from '../lib/ids';
 import type { PortfolioDeps } from '../routes/portfolio';

@@ -1,3 +1,4 @@
+import type { Env } from './env';
 import type { CoinSearchResult, FxRates, PriceQuote } from '@crypto-tracker/shared';
 
 export interface PriceProvider {

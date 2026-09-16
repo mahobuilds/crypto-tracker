@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { MemoryCache } from '../lib/memory-cache';
 import { coinResolveKey, coinSearchKey, fxKey, getJson, priceKey, putJson } from './cache';
 
-/** Minimal in-memory KVNamespace fake sufficient for these services. */
-export class FakeKVNamespace {
+/** Minimal in-memory MemoryCache fake sufficient for these services. */
+export class FakeCache {
   private readonly store = new Map<string, string>();
   readonly putCalls: Array<{ key: string; value: string; ttlSeconds?: number }> = [];
 
@@ -33,9 +34,9 @@ describe('cache key builders', () => {
 
 describe('getJson / putJson', () => {
   it('round trips a value through JSON and passes the TTL through to put', async () => {
-    const kv = new FakeKVNamespace();
-    await putJson(kv as unknown as KVNamespace, 'price:bitcoin', { usd: 1 }, 300);
-    expect(await getJson<{ usd: number }>(kv as unknown as KVNamespace, 'price:bitcoin')).toEqual({
+    const kv = new FakeCache();
+    await putJson(kv as unknown as MemoryCache, 'price:bitcoin', { usd: 1 }, 300);
+    expect(await getJson<{ usd: number }>(kv as unknown as MemoryCache, 'price:bitcoin')).toEqual({
       usd: 1,
     });
     expect(kv.putCalls[0]).toEqual({
@@ -46,15 +47,15 @@ describe('getJson / putJson', () => {
   });
 
   it('returns null for a missing key without calling fetch', async () => {
-    const kv = new FakeKVNamespace();
+    const kv = new FakeCache();
     const spy = vi.fn();
-    expect(await getJson(kv as unknown as KVNamespace, 'missing')).toBeNull();
+    expect(await getJson(kv as unknown as MemoryCache, 'missing')).toBeNull();
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('omits the TTL option when none is given', async () => {
-    const kv = new FakeKVNamespace();
-    await putJson(kv as unknown as KVNamespace, 'fx:usd', { base: 'USD' });
+    const kv = new FakeCache();
+    await putJson(kv as unknown as MemoryCache, 'fx:usd', { base: 'USD' });
     expect(kv.putCalls[0]?.ttlSeconds).toBeUndefined();
   });
 });

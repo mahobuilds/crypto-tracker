@@ -1,7 +1,12 @@
-import type { Auth, AuthUser } from './auth';
+import type { AuthUser } from './auth';
 import type { Database } from './db/client';
+import type { Env } from './env';
 
+/** Hono context shape for every route in the API. `env` and `db` are set by `withContext`, `user` by `requireAuth`. */
 export type AppEnv = {
-  Bindings: Env;
-  Variables: { db: Database; auth: Auth; user: AuthUser };
+  Variables: {
+    env: Env;
+    db: Database;
+    user: AuthUser;
+  };
 };

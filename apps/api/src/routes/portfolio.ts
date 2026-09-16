@@ -23,7 +23,7 @@ export function createPortfolioRoutes(deps: PortfolioDeps): Hono<AppEnv> {
     .get('/', async (c) => {
       const user = c.get('user');
       const db = c.get('db');
-      const summary = await buildPortfolio(c.env, db, user.id, deps);
+      const summary = await buildPortfolio(c.get('env'), db, user.id, deps);
       return c.json(summary);
     })
     .get('/history', async (c) => {

@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PriceQuote } from '@crypto-tracker/shared';
+import type { Env } from '../env';
+import type { MemoryCache } from '../lib/memory-cache';
 import { priceKey, putJson } from './cache';
 import { marketData } from './market';
 
-/** Minimal in-memory KVNamespace fake, local to this test file. */
-class FakeKVNamespace {
+/** Minimal in-memory MemoryCache fake, local to this test file. */
+class FakeCache {
   private readonly store = new Map<string, string>();
 
   async get<T>(key: string, type?: 'json'): Promise<T | string | null> {
@@ -18,7 +20,7 @@ class FakeKVNamespace {
   }
 }
 
-function makeEnv(kv: FakeKVNamespace): Env {
+function makeEnv(kv: FakeCache): Env {
   return { CACHE: kv } as unknown as Env;
 }
 
@@ -49,8 +51,8 @@ describe('marketData.getPrices', () => {
   });
 
   it('serves entirely from cache without calling fetch', async () => {
-    const kv = new FakeKVNamespace();
-    await putJson(kv as unknown as KVNamespace, priceKey('bitcoin'), quote('bitcoin'), 300);
+    const kv = new FakeCache();
+    await putJson(kv as unknown as MemoryCache, priceKey('bitcoin'), quote('bitcoin'), 300);
     const fetchImpl = vi.fn();
     vi.stubGlobal('fetch', fetchImpl);
 
@@ -62,8 +64,8 @@ describe('marketData.getPrices', () => {
   });
 
   it('fetches only the ids missing from the cache', async () => {
-    const kv = new FakeKVNamespace();
-    await putJson(kv as unknown as KVNamespace, priceKey('bitcoin'), quote('bitcoin'), 300);
+    const kv = new FakeCache();
+    await putJson(kv as unknown as MemoryCache, priceKey('bitcoin'), quote('bitcoin'), 300);
     const fetchImpl = vi
       .fn()
       .mockResolvedValue(
@@ -82,8 +84,8 @@ describe('marketData.getPrices', () => {
   });
 
   it('falls back to cached quotes when the upstream fetch fails', async () => {
-    const kv = new FakeKVNamespace();
-    await putJson(kv as unknown as KVNamespace, priceKey('bitcoin'), quote('bitcoin'), 300);
+    const kv = new FakeCache();
+    await putJson(kv as unknown as MemoryCache, priceKey('bitcoin'), quote('bitcoin'), 300);
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({}, 500));
     vi.stubGlobal('fetch', fetchImpl);
 
@@ -93,7 +95,7 @@ describe('marketData.getPrices', () => {
   });
 
   it('rethrows the upstream error when nothing is cached', async () => {
-    const kv = new FakeKVNamespace();
+    const kv = new FakeCache();
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({}, 500));
     vi.stubGlobal('fetch', fetchImpl);
 
@@ -103,7 +105,7 @@ describe('marketData.getPrices', () => {
   });
 
   it('returns an empty result for an empty id list without calling fetch', async () => {
-    const kv = new FakeKVNamespace();
+    const kv = new FakeCache();
     const fetchImpl = vi.fn();
     vi.stubGlobal('fetch', fetchImpl);
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CoinSearchResult, CsvRowResult } from '@crypto-tracker/shared';
 import type { CoinResolver } from '../contracts';
+import type { Env } from '../env';
 import { resolveRows } from './import';
 
 function fakeCoins(coins: Record<string, CoinSearchResult>): CoinResolver {

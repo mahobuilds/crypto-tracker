@@ -1,8 +1,9 @@
-import { buildPushPayload } from '@block65/webcrypto-web-push';
 import { and, eq } from 'drizzle-orm';
+import webpush, { WebPushError } from 'web-push';
 import type { PushSubscriptionInput } from '@crypto-tracker/shared';
 import type { Database } from '../db/client';
 import { pushSubscriptions, type PushSubscriptionRow } from '../db/schema';
+import type { Env } from '../env';
 import { newId } from '../lib/ids';
 import { nowIso } from '../lib/time';
 
@@ -23,31 +24,33 @@ export async function sendPush(
   env: Env,
   sub: PushSubscriptionRow,
   payload: PushPayload,
-  fetchImpl: typeof fetch = fetch,
 ): Promise<PushResult> {
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
+    console.error(
+      `[push] delivery failed for subscription ${sub.id}: VAPID keys are not configured`,
+    );
+    return 'failed';
+  }
   try {
-    const { headers, method, body } = await buildPushPayload(
-      {
-        data: { title: payload.title, body: payload.body, url: payload.url, tag: payload.tag },
-        options: { ttl: 3600, urgency: 'high' },
-      },
+    webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
+    await webpush.sendNotification(
       {
         endpoint: sub.endpoint,
         expirationTime: null,
         keys: { auth: sub.auth, p256dh: sub.p256dh },
       },
-      {
-        subject: env.VAPID_SUBJECT,
-        publicKey: env.VAPID_PUBLIC_KEY,
-        privateKey: env.VAPID_PRIVATE_KEY,
-      },
+      JSON.stringify({
+        title: payload.title,
+        body: payload.body,
+        url: payload.url,
+        tag: payload.tag,
+      }),
     );
-    const res = await fetchImpl(sub.endpoint, { method, headers, body });
-    if (res.ok) return 'sent';
-    if (res.status === 404 || res.status === 410) return 'gone';
-    console.error(`[push] delivery failed for subscription ${sub.id}: HTTP ${res.status}`);
-    return 'failed';
+    return 'sent';
   } catch (err) {
+    if (err instanceof WebPushError && (err.statusCode === 404 || err.statusCode === 410)) {
+      return 'gone';
+    }
     const reason = err instanceof Error ? err.message : String(err);
     console.error(`[push] delivery failed for subscription ${sub.id}: ${reason}`);
     return 'failed';

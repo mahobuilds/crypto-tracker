@@ -1,5 +1,6 @@
 import { CRON } from '@crypto-tracker/shared';
 import { createDb } from '../db/client';
+import type { Env } from '../env';
 import { transactions } from '../db/schema';
 import { nowIso } from '../lib/time';
 import { buildPortfolio, recordSnapshot } from '../services/portfolio';

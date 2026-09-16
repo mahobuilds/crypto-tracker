@@ -22,7 +22,7 @@ export function createPricesRoutes(deps: { prices: PriceProvider; fx: FxProvider
     if (ids.length > MAX_IDS) {
       throw new ApiError(400, 'TOO_MANY_IDS', `At most ${MAX_IDS} coin ids are allowed`);
     }
-    const { prices, updatedAt } = await deps.prices.getPrices(c.env, ids);
+    const { prices, updatedAt } = await deps.prices.getPrices(c.get('env'), ids);
     const body: PricesResponse = { prices, updatedAt };
     return c.json(body);
   });
@@ -30,7 +30,7 @@ export function createPricesRoutes(deps: { prices: PriceProvider; fx: FxProvider
 
 export function createFxRoutes(deps: { fx: FxProvider }): Hono<AppEnv> {
   return new Hono<AppEnv>().use(requireAuth).get('/', async (c) => {
-    const rates = await deps.fx.getFxRates(c.env);
+    const rates = await deps.fx.getFxRates(c.get('env'));
     const body: FxRates = rates;
     return c.json(body);
   });

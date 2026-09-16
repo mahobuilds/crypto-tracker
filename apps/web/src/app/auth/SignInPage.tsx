@@ -31,11 +31,7 @@ export function SignInPage() {
     setSubmitting(true);
     setFailed(false);
     try {
-      const result = await signInWithGoogle();
-      if (result.error) {
-        setFailed(true);
-        setSubmitting(false);
-      }
+      await signInWithGoogle();
     } catch {
       setFailed(true);
       setSubmitting(false);

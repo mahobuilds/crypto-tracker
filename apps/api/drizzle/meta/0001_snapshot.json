@@ -1,6 +1,6 @@
 {
-  "id": "9906ebeb-07ef-44e8-8890-aec770238437",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "8f0e7f4d-dd0a-4990-ae32-3a1f956824f2",
+  "prevId": "9906ebeb-07ef-44e8-8890-aec770238437",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -90,9 +90,20 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "alerts_own_rows": {
+          "name": "alerts_own_rows",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "user_id = (select auth.uid())::text",
+          "withCheck": "user_id = (select auth.uid())::text"
+        }
+      },
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.portfolio_snapshots": {
       "name": "portfolio_snapshots",
@@ -155,9 +166,20 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "portfolio_snapshots_own_rows": {
+          "name": "portfolio_snapshots_own_rows",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "user_id = (select auth.uid())::text",
+          "withCheck": "user_id = (select auth.uid())::text"
+        }
+      },
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.push_subscriptions": {
       "name": "push_subscriptions",
@@ -220,9 +242,20 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "push_subscriptions_own_rows": {
+          "name": "push_subscriptions_own_rows",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "user_id = (select auth.uid())::text",
+          "withCheck": "user_id = (select auth.uid())::text"
+        }
+      },
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.settings": {
       "name": "settings",
@@ -286,9 +319,20 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "settings_own_rows": {
+          "name": "settings_own_rows",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "user_id = (select auth.uid())::text",
+          "withCheck": "user_id = (select auth.uid())::text"
+        }
+      },
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.transactions": {
       "name": "transactions",
@@ -440,9 +484,20 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
+      "policies": {
+        "transactions_own_rows": {
+          "name": "transactions_own_rows",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "user_id = (select auth.uid())::text",
+          "withCheck": "user_id = (select auth.uid())::text"
+        }
+      },
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     }
   },
   "enums": {},

@@ -62,7 +62,7 @@ export function createImportRoutes(deps: ImportRoutesDeps): Hono<AppEnv> {
       throw new ApiError(400, 'VALIDATION_ERROR', parseResult.headerErrors.join('; '));
     }
 
-    const rows = await resolveRows(c.env, deps, parseResult.rows);
+    const rows = await resolveRows(c.get('env'), deps, parseResult.rows);
     const validCount = rows.filter((row) => row.input !== null).length;
     const errorCount = rows.length - validCount;
 
@@ -75,7 +75,7 @@ export function createImportRoutes(deps: ImportRoutesDeps): Hono<AppEnv> {
       throw new ApiError(400, 'VALIDATION_ERROR', 'Fix the highlighted rows before importing');
     }
 
-    const fx = await deps.fx.getFxRates(c.env);
+    const fx = await deps.fx.getFxRates(c.get('env'));
     const existingRows = await listTransactions(db, userId);
     let timeline = existingRows.map(toTransactionLike);
 

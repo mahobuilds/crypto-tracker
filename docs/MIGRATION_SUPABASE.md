@@ -50,7 +50,8 @@ Browser / PWA  ──HTTPS──▶  Railway service (Node 24)
 7. **Dev:** `pnpm dev` = Vite on 5173 (proxy `/api` → 8787 unchanged) + `tsx watch src/server.ts` on 8787. Prod: `tsx src/server.ts` (no separate build step for the API).
 8. **Migrations:** `drizzle-kit generate` → `apps/api/drizzle/*.sql`; applied with `drizzle-kit migrate` in `pnpm db:migrate`, which Railway runs as the pre-deploy command.
 9. **Supabase connection:** use the Session pooler string (port 5432) or Transaction pooler (6543) with `postgres(url, { prepare: false })`.
-10. **`ExecutionContext`** disappears; cron jobs receive `(env)` only. Registry type becomes `run(env: Env): Promise<void>`.
+10. **Row Level Security** is enabled on all five tables (migration `0001`). The API connects as the table owner (`postgres`) and bypasses RLS; policies (`<table>_own_rows`, role `authenticated`, `user_id = auth.uid()::text`) only govern direct Supabase REST/Realtime access. The anon key gets no rows.
+11. **`ExecutionContext`** disappears; cron jobs receive `(env)` only. Registry type becomes `run(env: Env): Promise<void>`.
 
 ## 4. Contracts (written by the master before wave 1)
 

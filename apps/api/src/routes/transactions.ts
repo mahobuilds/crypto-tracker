@@ -68,13 +68,13 @@ export function createTransactionsRoutes(deps: TransactionsDeps): Hono<AppEnv> {
     })
     .post('/', async (c) => {
       const input = await parseInput(c);
-      const fx = await deps.fx.getFxRates(c.env);
+      const fx = await deps.fx.getFxRates(c.get('env'));
       const transaction = await createTransaction(c.get('db'), c.get('user').id, input, fx);
       return c.json(transaction, 201);
     })
     .put('/:id', async (c) => {
       const input = await parseInput(c);
-      const fx = await deps.fx.getFxRates(c.env);
+      const fx = await deps.fx.getFxRates(c.get('env'));
       const transaction = await updateTransaction(
         c.get('db'),
         c.get('user').id,

@@ -1,4 +1,5 @@
 import type { ApiErrorBody } from '@crypto-tracker/shared';
+import { supabase } from '@/lib/supabase';
 
 export class ApiRequestError extends Error {
   constructor(
@@ -30,13 +31,17 @@ export async function apiFetch<T>(path: string, init: ApiInit = {}): Promise<T> 
     body = JSON.stringify(json);
   }
 
+  const { data } = await supabase.auth.getSession();
+  if (data.session?.access_token) {
+    requestHeaders.set('Authorization', `Bearer ${data.session.access_token}`);
+  }
+
   let response: Response;
   try {
     response = await fetch(path, {
       ...rest,
       body,
       headers: requestHeaders,
-      credentials: 'include',
     });
   } catch (cause) {
     throw new ApiRequestError(

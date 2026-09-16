@@ -5,6 +5,7 @@ import {
   type TransactionInput,
 } from '@crypto-tracker/shared';
 import type { CoinResolver } from '../contracts';
+import type { Env } from '../env';
 
 export interface ImportDeps {
   coins: CoinResolver;

@@ -1,41 +1,49 @@
+import cron, { type ScheduledTask } from 'node-cron';
+import type { Env } from '../env';
+
 export interface CronJob {
   name: string;
-  /** Cron expression this job runs on; must appear in `wrangler.jsonc` triggers. */
+  /** Cron expression this job runs on. */
   cron: string;
-  run(env: Env, ctx: ExecutionContext): Promise<void>;
+  run(env: Env): Promise<void>;
 }
 
 /** Registry of scheduled jobs. The master pushes jobs here at integration. */
 export const cronJobs: CronJob[] = [];
 
-export async function handleScheduled(
-  event: ScheduledController,
-  env: Env,
-  ctx: ExecutionContext,
-): Promise<void> {
-  const jobs = cronJobs.filter((job) => job.cron === event.cron);
-  if (jobs.length === 0) {
-    console.warn(`[cron] no jobs registered for "${event.cron}"`);
-    return;
-  }
+export interface Scheduler {
+  stop(): void;
+}
 
-  const results = await Promise.allSettled(jobs.map((job) => job.run(env, ctx)));
-  const failures = results.flatMap((result, i) =>
-    result.status === 'rejected'
-      ? [`${jobs[i]?.name ?? 'unknown'}: ${describeReason(result.reason)}`]
-      : [],
-  );
-  const names = jobs.map((job) => job.name).join(', ');
-  if (failures.length === 0) {
-    console.log(`[cron] "${event.cron}" ran ${jobs.length} job(s): ${names}`);
-  } else {
-    console.error(
-      `[cron] "${event.cron}" ran ${jobs.length} job(s): ${names}; ${failures.length} failed: ${failures.join('; ')}`,
-    );
+async function runOne(job: CronJob, env: Env): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    await job.run(env);
+    console.log(`[cron] ${job.name} ok (${Date.now() - startedAt}ms)`);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error(`[cron] ${job.name} failed: ${reason}`);
   }
 }
 
-function describeReason(reason: unknown): string {
-  if (reason instanceof Error) return reason.message;
-  return String(reason);
+/**
+ * Schedules every job in `cronJobs` with node-cron, one task per job, all in UTC.
+ * Errors from a job are logged and never thrown, so one failing job cannot stop the others.
+ */
+export function startScheduler(env: Env): Scheduler {
+  const tasks: ScheduledTask[] = cronJobs.map((job) =>
+    cron.schedule(job.cron, () => runOne(job, env), { timezone: 'UTC' }),
+  );
+
+  return {
+    stop() {
+      for (const task of tasks) task.stop();
+    },
+  };
+}
+
+/** Runs every registered job matching `cron` immediately, outside the schedule. */
+export async function runJobsFor(cronExpr: string, env: Env): Promise<void> {
+  const jobs = cronJobs.filter((job) => job.cron === cronExpr);
+  await Promise.all(jobs.map((job) => runOne(job, env)));
 }

@@ -1,13 +1,21 @@
 import type { MiddlewareHandler } from 'hono';
-import { ApiError } from '../lib/errors';
+import { AuthError, createTokenVerifier, type AuthUser } from '../auth';
 import type { AppEnv } from '../types';
 
-/** Resolves the Better Auth session; sets `user` or throws 401. */
+let verifyToken: ((token: string) => Promise<AuthUser>) | undefined;
+
+/** Parses `Authorization: Bearer <token>`, verifies it against Supabase, and sets `user`. */
 export const requireAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const session = await c.get('auth').api.getSession({ headers: c.req.raw.headers });
-  if (!session) {
-    throw new ApiError(401, 'UNAUTHORIZED', 'Sign in required');
+  const header = c.req.header('Authorization') ?? c.req.header('authorization');
+  const match = header?.match(/^Bearer\s+(.+)$/i);
+  const token = match?.[1];
+  if (!token) {
+    throw new AuthError('Sign in required');
   }
-  c.set('user', session.user);
+  if (!verifyToken) {
+    verifyToken = createTokenVerifier(c.get('env'));
+  }
+  const user = await verifyToken(token);
+  c.set('user', user);
   await next();
 };
