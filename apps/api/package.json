@@ -1,0 +1,31 @@
+{
+  "name": "@crypto-tracker/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ./scripts/ensure-assets-dir.mjs && wrangler dev --port 8787",
+    "deploy": "wrangler deploy",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "cf-typegen": "wrangler types --strict-vars=false",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply crypto_tracker_db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply crypto_tracker_db --remote"
+  },
+  "dependencies": {
+    "@block65/webcrypto-web-push": "^2.0.0",
+    "@crypto-tracker/shared": "workspace:*",
+    "better-auth": "^1.7.4",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.13.7",
+    "zod": "4.6.4"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11",
+    "wrangler": "4.131.1"
+  }
+}

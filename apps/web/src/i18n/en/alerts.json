@@ -1,0 +1,53 @@
+{
+  "title": "Alerts",
+  "subtitle": "Get notified when a coin crosses a price you choose.",
+  "newAlert": "New alert",
+  "offCard": {
+    "title": "Alerts are off",
+    "description": "Turn on price alerts in Settings to create alerts and receive notifications.",
+    "enable": "Turn on alerts"
+  },
+  "notifications": {
+    "title": "Notifications on this device",
+    "enable": "Turn on",
+    "disable": "Turn off",
+    "status": {
+      "unsupported": "Not supported on this device or browser.",
+      "blocked": "Blocked. Allow notifications for this site in your browser settings.",
+      "off": "Off for this device.",
+      "on": "On for this device."
+    }
+  },
+  "list": {
+    "active": "Active",
+    "paused": "Paused",
+    "triggeredAt": "Triggered {{date}}",
+    "currentPrice": "Current price: {{price}}"
+  },
+  "actions": {
+    "rearm": "Re-arm",
+    "deleteTitle": "Delete alert",
+    "confirmDelete": "Delete the alert for {{coin}}?"
+  },
+  "empty": {
+    "title": "No alerts yet",
+    "description": "Create an alert to be notified when a coin's price goes above or below a target."
+  },
+  "form": {
+    "createTitle": "New alert",
+    "editTitle": "Edit alert",
+    "coin": "Coin",
+    "coinRequired": "Choose a coin",
+    "direction": "Condition",
+    "goesAbove": "Goes above",
+    "goesBelow": "Goes below",
+    "targetPrice": "Target price (USD)",
+    "useCurrentPrice": "Current price",
+    "plus5": "+5%",
+    "minus5": "−5%"
+  },
+  "banner": {
+    "title": "Your alerts triggered",
+    "item": "{{coin}} reached its target on {{date}}"
+  }
+}

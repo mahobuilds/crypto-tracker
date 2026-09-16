@@ -1,0 +1,63 @@
+{
+  "title": "Transactions",
+  "subtitle": "Every buy and sell you have recorded.",
+  "add": "Add transaction",
+  "filters": {
+    "coin": "Coin",
+    "allCoins": "All coins",
+    "type": "Type",
+    "allTypes": "All types"
+  },
+  "type": {
+    "buy": "Buy",
+    "sell": "Sell"
+  },
+  "list": {
+    "date": "Date",
+    "coin": "Coin",
+    "type": "Type",
+    "quantity": "Quantity",
+    "price": "Price",
+    "total": "Total",
+    "fee": "Fee",
+    "note": "Note",
+    "actions": "Actions"
+  },
+  "actions": {
+    "edit": "Edit transaction",
+    "delete": "Delete transaction"
+  },
+  "empty": {
+    "title": "No transactions yet",
+    "description": "Record your first buy or sell to start tracking your portfolio.",
+    "action": "Add your first transaction"
+  },
+  "form": {
+    "addTitle": "Add transaction",
+    "editTitle": "Edit transaction",
+    "type": "Type",
+    "buy": "Buy",
+    "sell": "Sell",
+    "coinLabel": "Coin",
+    "quantity": "Quantity",
+    "pricePerUnit": "Price per unit",
+    "currency": "Currency",
+    "total": "Total",
+    "fee": "Fee",
+    "date": "Date and time",
+    "note": "Note",
+    "errors": {
+      "coin": "Choose a coin",
+      "quantity": "Enter a quantity greater than zero",
+      "pricePerUnit": "Enter a price of zero or more",
+      "currency": "Choose a currency",
+      "fee": "Enter a fee of zero or more",
+      "date": "Enter a valid date and time",
+      "note": "Note is too long"
+    }
+  },
+  "delete": {
+    "title": "Delete transaction?",
+    "confirm": "This will delete the transaction of {{quantity}} {{coin}} on {{date}}. This cannot be undone."
+  }
+}

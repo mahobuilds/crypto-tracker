@@ -1,0 +1,15 @@
+{
+  "title": "Prices",
+  "updated": "Updated {{time}}",
+  "yourCoins": "Your coins",
+  "loadError": "Could not load your portfolio.",
+  "noHoldingsTitle": "You don't own any coins yet",
+  "noHoldingsDescription": "Add a buy transaction to start tracking live prices for your coins.",
+  "goToTransactions": "Go to transactions",
+  "searchAnyCoin": "Search any coin",
+  "searchLabel": "Search for a coin",
+  "watchlist": "Recently searched",
+  "removeFromWatchlist": "Remove {{name}} from your searched coins",
+  "noPrice": "No price",
+  "emDash": "—"
+}

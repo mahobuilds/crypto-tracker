@@ -1,0 +1,45 @@
+export const CURRENCIES = ['USD', 'EUR', 'SAR', 'TRY'] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
+export const LANGUAGES = ['en', 'ar'] as const;
+export type Language = (typeof LANGUAGES)[number];
+
+export const THEMES = ['light', 'dark', 'system'] as const;
+export type Theme = (typeof THEMES)[number];
+
+export const TRANSACTION_TYPES = ['buy', 'sell'] as const;
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+
+export const ALERT_DIRECTIONS = ['above', 'below'] as const;
+export type AlertDirection = (typeof ALERT_DIRECTIONS)[number];
+
+export const CHART_KINDS = ['line', 'pie'] as const;
+export type ChartKind = (typeof CHART_KINDS)[number];
+
+export const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  USD: '$',
+  EUR: '€',
+  SAR: '﷼',
+  TRY: '₺',
+};
+
+export const LANGUAGE_DIRECTION: Record<Language, 'ltr' | 'rtl'> = {
+  en: 'ltr',
+  ar: 'rtl',
+};
+
+/** BCP 47 locale used for number and date formatting per UI language. */
+export const LANGUAGE_LOCALE: Record<Language, string> = {
+  en: 'en-US',
+  ar: 'ar-SA',
+};
+
+/** How often the client re-fetches live data, in milliseconds. */
+export const PRICE_REFRESH_INTERVAL_MS = 60_000;
+
+/** Cron expressions the Worker is triggered on (must match wrangler.jsonc). */
+export const CRON = {
+  EVERY_MINUTE: '* * * * *',
+  HOURLY: '0 * * * *',
+  EVERY_6_HOURS: '0 */6 * * *',
+} as const;

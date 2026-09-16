@@ -1,0 +1,52 @@
+{
+  "title": "Import transactions",
+  "subtitle": "Upload a CSV file or paste rows, review the preview, then confirm.",
+  "downloadSample": "Download sample CSV",
+  "step1Title": "1. Prepare your file",
+  "columnsIntro": "Expected columns:",
+  "columns": {
+    "date": "Date and time of the trade, e.g. 2025-01-15 or 2025-01-15T09:30:00Z.",
+    "type": "buy or sell.",
+    "coin": "Coin ticker or name, e.g. BTC or bitcoin.",
+    "quantity": "Amount traded, greater than 0.",
+    "price": "Price per unit, in the transaction currency.",
+    "currency": "USD, EUR, SAR or TRY. Optional, defaults to your base currency.",
+    "fee": "Fee paid, if any. Optional, defaults to 0.",
+    "note": "Free text note. Optional."
+  },
+  "dropzoneTitle": "Choose a CSV file",
+  "dropzoneHint": "or drag it here",
+  "dropzoneSelected": "Selected: {{name}}",
+  "pasteLabel": "Or paste CSV text",
+  "pastePlaceholder": "date,type,coin,quantity,price,currency,fee,note",
+  "previewButton": "Preview import",
+  "startOver": "Start over",
+  "errors": {
+    "empty": "Choose a CSV file or paste CSV text first.",
+    "tooLarge": "That file is larger than 1 MB. Split it into smaller files and try again."
+  },
+  "step2Title": "2. Review",
+  "summary": "{{valid}} valid, {{errors}} with errors",
+  "table": {
+    "line": "#",
+    "date": "Date",
+    "type": "Type",
+    "coin": "Coin",
+    "quantity": "Quantity",
+    "price": "Price",
+    "currency": "Currency",
+    "fee": "Fee",
+    "note": "Note",
+    "errorsHeading": "Errors",
+    "ok": "OK"
+  },
+  "types": {
+    "buy": "Buy",
+    "sell": "Sell"
+  },
+  "fixErrorsHint": "Fix the errors in your file, then upload it again to import.",
+  "commitButton": "Import {{count}} transactions",
+  "successTitle": "Import complete",
+  "successMessage": "{{count}} transactions were imported.",
+  "viewTransactions": "View transactions"
+}

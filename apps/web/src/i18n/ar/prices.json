@@ -1,0 +1,15 @@
+{
+  "title": "الأسعار",
+  "updated": "آخر تحديث {{time}}",
+  "yourCoins": "عملاتك",
+  "loadError": "تعذّر تحميل محفظتك.",
+  "noHoldingsTitle": "لا تملك أي عملات بعد",
+  "noHoldingsDescription": "أضف عملية شراء للبدء بمتابعة الأسعار الحية لعملاتك.",
+  "goToTransactions": "الذهاب إلى المعاملات",
+  "searchAnyCoin": "ابحث عن أي عملة",
+  "searchLabel": "ابحث عن عملة",
+  "watchlist": "العملات المبحوث عنها مؤخراً",
+  "removeFromWatchlist": "إزالة {{name}} من العملات المبحوث عنها",
+  "noPrice": "لا يوجد سعر",
+  "emDash": "—"
+}

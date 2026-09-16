@@ -1,0 +1,52 @@
+{
+  "title": "استيراد المعاملات",
+  "subtitle": "ارفع ملف CSV أو الصق الصفوف، راجع المعاينة، ثم أكّد الاستيراد.",
+  "downloadSample": "تحميل نموذج CSV",
+  "step1Title": "1. جهّز ملفك",
+  "columnsIntro": "الأعمدة المتوقعة:",
+  "columns": {
+    "date": "تاريخ ووقت الصفقة، مثل 2025-01-15 أو 2025-01-15T09:30:00Z.",
+    "type": "buy أو sell (شراء أو بيع).",
+    "coin": "رمز العملة أو اسمها، مثل BTC أو bitcoin.",
+    "quantity": "الكمية المتداولة، أكبر من 0.",
+    "price": "سعر الوحدة، بعملة المعاملة.",
+    "currency": "USD أو EUR أو SAR أو TRY. اختياري، الافتراضي هو عملتك الأساسية.",
+    "fee": "الرسوم المدفوعة إن وجدت. اختياري، الافتراضي 0.",
+    "note": "ملاحظة نصية حرة. اختياري."
+  },
+  "dropzoneTitle": "اختر ملف CSV",
+  "dropzoneHint": "أو اسحبه إلى هنا",
+  "dropzoneSelected": "تم اختيار: {{name}}",
+  "pasteLabel": "أو الصق نص CSV",
+  "pastePlaceholder": "date,type,coin,quantity,price,currency,fee,note",
+  "previewButton": "معاينة الاستيراد",
+  "startOver": "البدء من جديد",
+  "errors": {
+    "empty": "اختر ملف CSV أو الصق نص CSV أولاً.",
+    "tooLarge": "حجم الملف أكبر من 1 ميغابايت. قسّمه إلى ملفات أصغر وحاول مرة أخرى."
+  },
+  "step2Title": "2. المراجعة",
+  "summary": "{{valid}} صف صالح، {{errors}} صف به أخطاء",
+  "table": {
+    "line": "#",
+    "date": "التاريخ",
+    "type": "النوع",
+    "coin": "العملة",
+    "quantity": "الكمية",
+    "price": "السعر",
+    "currency": "العملة النقدية",
+    "fee": "الرسوم",
+    "note": "ملاحظة",
+    "errorsHeading": "الأخطاء",
+    "ok": "سليم"
+  },
+  "types": {
+    "buy": "شراء",
+    "sell": "بيع"
+  },
+  "fixErrorsHint": "صحّح الأخطاء في ملفك، ثم ارفعه مرة أخرى للاستيراد.",
+  "commitButton": "استيراد {{count}} معاملة",
+  "successTitle": "اكتمل الاستيراد",
+  "successMessage": "تم استيراد {{count}} معاملة.",
+  "viewTransactions": "عرض المعاملات"
+}

@@ -1,0 +1,55 @@
+{
+  "title": "Dashboard",
+  "lastUpdated": "Prices updated {{time}}",
+  "pricesUnavailable": "Prices unavailable",
+  "totalValue": "Total value",
+  "invested": "Invested",
+  "unrealizedPnl": "Unrealized P/L",
+  "realizedPnl": "Realized P/L: {{value}}",
+  "empty": {
+    "title": "No holdings yet",
+    "description": "Add your first transaction to see your portfolio here.",
+    "action": "Add a transaction"
+  },
+  "chart": {
+    "value": "Portfolio value",
+    "investedLine": "Invested",
+    "rangeLabel": "Chart range",
+    "range": {
+      "24h": "24h",
+      "7d": "7d",
+      "30d": "30d",
+      "90d": "90d",
+      "1y": "1y",
+      "all": "All"
+    },
+    "notEnoughHistory": "Not enough history yet; snapshots are taken hourly"
+  },
+  "allocation": {
+    "title": "Allocation",
+    "other": "Other",
+    "summary": "Allocation by coin: {{summary}}"
+  },
+  "holdings": {
+    "title": "Holdings",
+    "coin": "Coin",
+    "quantity": "Quantity",
+    "avgCost": "Avg. cost",
+    "price": "Price",
+    "value": "Value",
+    "pnl": "P/L",
+    "allocation": "Allocation",
+    "noPrice": "No price"
+  },
+  "settingsButton": {
+    "label": "Charts",
+    "title": "Chart settings",
+    "lineChart": "Line chart",
+    "lineChartDescription": "Show portfolio value over time",
+    "pieChart": "Pie chart",
+    "pieChartDescription": "Show allocation by coin",
+    "order": "Order",
+    "moveUp": "Move up",
+    "moveDown": "Move down"
+  }
+}

@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+}
+
+:root {
+  --touch-target: 44px;
+}
+
+html {
+  font-size: 16px;
+}
+
+html[data-large-text] {
+  --touch-target: 48px;
+  font-size: 18px;
+}
+
+body {
+  @apply bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+}
+
+.touch-target {
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
+}
+
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-indigo-600 dark:outline-indigo-400;
+}
