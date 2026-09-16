@@ -1,0 +1,7 @@
+# Fallback if the service is switched back to the Nixpacks builder: install pnpm from npm
+# instead of corepack, which cannot resolve pnpm 12 in Nixpacks' image.
+[phases.setup]
+nixPkgs = ["nodejs_24"]
+
+[phases.install]
+cmds = ["npm install -g pnpm@12.4.1", "pnpm install --frozen-lockfile"]

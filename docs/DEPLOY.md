@@ -72,7 +72,7 @@ dashboard.
 ## 3. Railway
 
 1. In Railway, create a new project → **Deploy from GitHub repo** → select
-   `mahobuilds/crypto-tracker`. Railway detects Node via Nixpacks (Node 24, pnpm from the
+   `mahobuilds/crypto-tracker`. Railway builds with Railpack (Node 24, pnpm from the
    `packageManager` field in the root `package.json`).
 2. The build command, pre-deploy command, start command, and health check path all come from
    `railway.json` at the repo root — nothing to configure manually:
