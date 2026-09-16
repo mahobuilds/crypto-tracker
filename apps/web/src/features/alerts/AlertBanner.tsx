@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Alert, Language } from '@crypto-tracker/shared';
-import { BellIcon, CloseIcon } from '@/components/icons';
+import { Icon } from '@/components/icons';
+import { IconButton } from '@/components/ui';
 import { isLanguage } from '@/i18n';
 import { formatDateTime } from '@/lib/format';
 import { useAlerts } from './queries';
@@ -66,14 +67,16 @@ export function AlertBanner() {
   return (
     <div
       role="status"
-      className="mx-auto mb-4 flex w-full max-w-5xl items-start gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-indigo-900 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-200"
+      className="animate-rise flex items-start gap-3 rounded-[var(--r-md)] bg-warn-soft px-4 py-3 text-ink"
     >
-      <BellIcon className="mt-0.5 size-5 shrink-0" />
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-surface text-warn">
+        <Icon.BellRinging weight="fill" size={18} />
+      </span>
       <div className="min-w-0 flex-1">
-        <p className="text-base font-semibold">{t('alerts.banner.title')}</p>
-        <ul className="mt-1 flex flex-col gap-1">
+        <p className="text-[0.9375rem] font-semibold">{t('alerts.banner.title')}</p>
+        <ul className="mt-0.5 flex flex-col gap-0.5">
           {triggeredAlerts.map((alert) => (
-            <li key={alert.id} className="text-sm">
+            <li key={alert.id} className="text-caption text-ink-2">
               {t('alerts.banner.item', {
                 coin: alert.coinSymbol.toUpperCase(),
                 date: formatDateTime(alert.triggeredAt, language),
@@ -82,14 +85,9 @@ export function AlertBanner() {
           ))}
         </ul>
       </div>
-      <button
-        type="button"
-        onClick={handleDismiss}
-        aria-label={t('common.close')}
-        className="touch-target inline-flex items-center justify-center rounded-xl text-indigo-700 hover:bg-indigo-100 dark:text-indigo-300 dark:hover:bg-indigo-900"
-      >
-        <CloseIcon className="size-5" />
-      </button>
+      <IconButton aria-label={t('common.close')} onClick={handleDismiss} className="-me-2 -mt-1.5">
+        <Icon.X />
+      </IconButton>
     </div>
   );
 }

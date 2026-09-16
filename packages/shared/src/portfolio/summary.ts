@@ -1,4 +1,5 @@
-import type { FxRates, Holding, PortfolioSummary, PriceQuote } from '../types';
+import type { FxRates, Holding, PnlByMethod, PortfolioSummary, PriceQuote } from '../types';
+import { computeFifo } from './fifo';
 import { computeHoldings, type TransactionLike } from './holdings';
 
 export interface ComputePortfolioInput {
@@ -65,12 +66,42 @@ export function computePortfolio(input: ComputePortfolioInput): PortfolioSummary
 
   const unrealizedPnlUsd = totalValueUsd - pricedInvestedUsd;
 
+  const average: PnlByMethod = {
+    realizedPnlUsd,
+    investedUsd,
+    unrealizedPnlUsd: pricedInvestedUsd > 0 || totalValueUsd > 0 ? unrealizedPnlUsd : null,
+    unrealizedPnlPct: pricedInvestedUsd > 0 ? pctOf(unrealizedPnlUsd, pricedInvestedUsd) : null,
+  };
+
+  const fifoResult = computeFifo(input.transactions);
+  let fifoInvested = 0;
+  let fifoPricedInvested = 0;
+  let fifoPricedValue = 0;
+  let anyPriced = false;
+  for (const coin of Object.values(fifoResult.coins)) {
+    fifoInvested += coin.investedUsd;
+    const quote = input.prices[coin.coinId];
+    if (quote) {
+      anyPriced = true;
+      fifoPricedInvested += coin.investedUsd;
+      fifoPricedValue += coin.quantity * quote.usd;
+    }
+  }
+  const fifoUnrealized = fifoPricedValue - fifoPricedInvested;
+  const fifo: PnlByMethod = {
+    realizedPnlUsd: fifoResult.realizedPnlUsd,
+    investedUsd: fifoInvested,
+    unrealizedPnlUsd: anyPriced ? fifoUnrealized : null,
+    unrealizedPnlPct: fifoPricedInvested > 0 ? pctOf(fifoUnrealized, fifoPricedInvested) : null,
+  };
+
   return {
     totalValueUsd,
     investedUsd,
     unrealizedPnlUsd,
     unrealizedPnlPct: pctOf(unrealizedPnlUsd, pricedInvestedUsd),
     realizedPnlUsd,
+    methods: { average, fifo },
     holdings,
     fx: input.fx,
     pricesUpdatedAt: input.pricesUpdatedAt,

@@ -1,25 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Alert } from '@crypto-tracker/shared';
 import { useSettings } from '@/app/settings/SettingsProvider';
-import { BellIcon, PencilIcon, PlusIcon, TrashIcon } from '@/components/icons';
+import { Icon } from '@/components/icons';
 import {
+  Avatar,
   Badge,
   Button,
-  Card,
-  CardHeader,
-  CardTitle,
   Dialog,
   EmptyState,
   ErrorMessage,
+  IconButton,
+  ListGroup,
+  ListLabel,
+  ListRow,
   PageHeader,
-  Spinner,
+  Panel,
+  useToast,
 } from '@/components/ui';
 import type { BadgeTone } from '@/components/ui';
 import { useFx } from '@/hooks/useFx';
 import { usePrices } from '@/hooks/usePrices';
 import { ApiRequestError } from '@/lib/api';
-import { formatDateTime, formatFiat, formatMoneyUsd } from '@/lib/format';
+import { formatDateTime, formatFiat, formatMoneyUsd, formatPct } from '@/lib/format';
 import { AlertForm } from './AlertForm';
 import {
   getCurrentSubscription,
@@ -33,11 +36,16 @@ import { useAlerts, useDeleteAlert, useUpdateAlert } from './queries';
 type AlertStatus = 'active' | 'paused' | 'triggered';
 type PushStatus = 'unsupported' | 'blocked' | 'off' | 'on';
 
-const STATUS_ORDER: Record<AlertStatus, number> = { active: 0, paused: 1, triggered: 2 };
 const STATUS_TONE: Record<AlertStatus, BadgeTone> = {
-  active: 'info',
+  active: 'accent',
   paused: 'neutral',
-  triggered: 'positive',
+  triggered: 'warn',
+};
+const PUSH_TONE: Record<PushStatus, BadgeTone> = {
+  unsupported: 'neutral',
+  blocked: 'warn',
+  off: 'neutral',
+  on: 'gain',
 };
 
 function alertStatus(alert: Alert): AlertStatus {
@@ -50,14 +58,8 @@ function usePushStatus() {
   const [isBusy, setIsBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!isPushSupported()) {
-      setStatus('unsupported');
-      return;
-    }
-    if (getPushPermission() === 'denied') {
-      setStatus('blocked');
-      return;
-    }
+    if (!isPushSupported()) return setStatus('unsupported');
+    if (getPushPermission() === 'denied') return setStatus('blocked');
     const subscription = await getCurrentSubscription();
     setStatus(subscription ? 'on' : 'off');
   }, []);
@@ -73,10 +75,7 @@ function usePushStatus() {
         await unsubscribeFromPush();
       } else {
         const result = await subscribeToPush();
-        if (result === 'denied') {
-          setStatus('blocked');
-          return;
-        }
+        if (result === 'denied') return setStatus('blocked');
       }
       await refresh();
     } finally {
@@ -87,34 +86,53 @@ function usePushStatus() {
   return { status, isBusy, toggle };
 }
 
-interface AlertRowProps {
-  alert: Alert;
-  currentPriceUsd: number | null;
-  onEdit: () => void;
-}
-
-function AlertRow({ alert, currentPriceUsd, onEdit }: AlertRowProps) {
+export function AlertsPage() {
   const { t } = useTranslation();
-  const { settings } = useSettings();
+  const toast = useToast();
+  const { settings, updateSettings } = useSettings();
+  const { language, baseCurrency } = settings;
   const { fx } = useFx();
+  const alertsQuery = useAlerts();
+  const pushStatus = usePushStatus();
   const deleteAlert = useDeleteAlert();
   const updateAlert = useUpdateAlert();
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const status = alertStatus(alert);
-  const directionSymbol = alert.direction === 'above' ? '≥' : '≤';
-  const targetUsdText = formatFiat(alert.targetPriceUsd, 'USD', settings.language);
-  const targetBaseHint =
-    fx && settings.baseCurrency !== 'USD'
-      ? formatMoneyUsd(alert.targetPriceUsd, settings.baseCurrency, fx, settings.language)
-      : null;
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingAlert, setEditingAlert] = useState<Alert | null>(null);
+  const [actionsFor, setActionsFor] = useState<Alert | null>(null);
+  const [deleting, setDeleting] = useState<Alert | null>(null);
 
-  async function handleDelete() {
-    await deleteAlert.mutateAsync(alert.id);
-    setConfirmingDelete(false);
+  const alerts = alertsQuery.data?.alerts ?? [];
+  const groups = useMemo(() => {
+    const active = alerts.filter((a) => alertStatus(a) === 'active');
+    const paused = alerts.filter((a) => alertStatus(a) === 'paused');
+    const triggered = alerts.filter((a) => alertStatus(a) === 'triggered');
+    return [
+      ['active', active],
+      ['paused', paused],
+      ['triggered', triggered],
+    ] as const;
+  }, [alerts]);
+
+  const coinIds = useMemo(() => Array.from(new Set(alerts.map((a) => a.coinId))), [alerts]);
+  const { prices } = usePrices(coinIds);
+
+  function openCreate() {
+    setEditingAlert(null);
+    setFormOpen(true);
+  }
+  function openEdit(alert: Alert) {
+    setActionsFor(null);
+    setEditingAlert(alert);
+    setFormOpen(true);
+  }
+  function closeForm() {
+    setFormOpen(false);
+    setEditingAlert(null);
   }
 
-  async function handleRearm() {
+  async function handleRearm(alert: Alert) {
+    setActionsFor(null);
     await updateAlert.mutateAsync({
       id: alert.id,
       input: {
@@ -126,68 +144,246 @@ function AlertRow({ alert, currentPriceUsd, onEdit }: AlertRowProps) {
         enabled: true,
       },
     });
+    toast.success(t('alerts.toast.rearmed'));
   }
 
-  return (
-    <li className="flex flex-col gap-3 rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-base font-semibold">{alert.coinName}</span>
-          <span className="text-sm text-slate-600 uppercase dark:text-slate-400">
-            {alert.coinSymbol}
-          </span>
-        </div>
-        <Badge tone={STATUS_TONE[status]}>
-          {status === 'triggered' && alert.triggeredAt
-            ? t('alerts.list.triggeredAt', {
-                date: formatDateTime(alert.triggeredAt, settings.language),
-              })
-            : t(`alerts.list.${status}`)}
-        </Badge>
-      </div>
-      <div>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          {directionSymbol} {targetUsdText}
-          {targetBaseHint ? ` (≈ ${targetBaseHint})` : ''}
-        </p>
-        {currentPriceUsd !== null ? (
-          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
-            {t('alerts.list.currentPrice', {
-              price: formatFiat(currentPriceUsd, 'USD', settings.language),
-            })}
-          </p>
-        ) : null}
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {status !== 'active' ? (
-          <Button
-            variant="secondary"
-            onClick={() => void handleRearm()}
-            loading={updateAlert.isPending}
+  async function handleDelete() {
+    if (!deleting) return;
+    await deleteAlert.mutateAsync(deleting.id);
+    setDeleting(null);
+    toast.success(t('alerts.toast.deleted'));
+  }
+
+  function conditionText(alert: Alert) {
+    const symbol = alert.direction === 'above' ? '≥' : '≤';
+    return `${alert.coinSymbol} ${symbol} ${formatFiat(alert.targetPriceUsd, 'USD', language)}`;
+  }
+
+  function subtitleText(alert: Alert) {
+    const current = prices[alert.coinId]?.usd ?? null;
+    const parts: string[] = [];
+    if (current !== null) {
+      const distance = ((alert.targetPriceUsd - current) / current) * 100;
+      parts.push(
+        `${t('alerts.list.now')} ${formatFiat(current, 'USD', language)} · ${t('alerts.list.away', { pct: formatPct(Math.abs(distance), language, { signed: false }) })}`,
+      );
+    } else if (fx && baseCurrency !== 'USD') {
+      parts.push(`≈ ${formatMoneyUsd(alert.targetPriceUsd, baseCurrency, fx, language)}`);
+    }
+    if (alert.triggeredAt) {
+      parts.length = 0;
+      parts.push(
+        t('alerts.list.triggeredAt', { date: formatDateTime(alert.triggeredAt, language) }),
+      );
+    }
+    return parts.join(' · ');
+  }
+
+  const rowActions = (alert: Alert) => {
+    const status = alertStatus(alert);
+    return (
+      <>
+        <div className="hidden items-center gap-1 md:flex">
+          {status !== 'active' ? (
+            <Button
+              variant="secondary"
+              size="md"
+              className="h-9 px-3 text-sm"
+              onClick={() => void handleRearm(alert)}
+              loading={updateAlert.isPending && updateAlert.variables?.id === alert.id}
+            >
+              {t('alerts.actions.rearm')}
+            </Button>
+          ) : null}
+          <IconButton aria-label={t('common.edit')} onClick={() => openEdit(alert)}>
+            <Icon.Pencil />
+          </IconButton>
+          <IconButton
+            variant="danger"
+            aria-label={t('common.delete')}
+            onClick={() => setDeleting(alert)}
           >
-            {t('alerts.actions.rearm')}
-          </Button>
-        ) : null}
-        <Button variant="secondary" onClick={onEdit} aria-label={t('common.edit')}>
-          <PencilIcon className="size-5" />
-        </Button>
-        <Button
-          variant="danger"
-          onClick={() => setConfirmingDelete(true)}
-          loading={deleteAlert.isPending}
-          aria-label={t('common.delete')}
+            <Icon.Trash />
+          </IconButton>
+        </div>
+        <IconButton
+          className="md:hidden"
+          aria-label={t('alerts.actions.more')}
+          onClick={() => setActionsFor(alert)}
         >
-          <TrashIcon className="size-5" />
-        </Button>
-      </div>
+          <Icon.DotsThree weight="bold" />
+        </IconButton>
+      </>
+    );
+  };
+
+  return (
+    <>
+      <PageHeader
+        title={t('alerts.title')}
+        subtitle={t('alerts.subtitle')}
+        actions={
+          settings.alertsEnabled ? (
+            <Button onClick={openCreate}>
+              <Icon.Plus weight="bold" />
+              {t('alerts.newAlert')}
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {!settings.alertsEnabled ? (
+        <Panel tone="accent" className="animate-rise">
+          <EmptyState
+            icon={<Icon.BellRinging />}
+            title={t('alerts.offCard.title')}
+            description={t('alerts.offCard.description')}
+            action={
+              <Button onClick={() => void updateSettings({ alertsEnabled: true })}>
+                {t('alerts.offCard.enable')}
+              </Button>
+            }
+          />
+        </Panel>
+      ) : (
+        <>
+          <Panel flush className="animate-rise" style={{ '--i': 1 } as React.CSSProperties}>
+            <ListRow
+              leading={
+                <span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent">
+                  <Icon.BellRinging />
+                </span>
+              }
+              title={t('alerts.notifications.title')}
+              titleAside={
+                <Badge tone={PUSH_TONE[pushStatus.status]}>
+                  {t(`alerts.notifications.badge.${pushStatus.status}`)}
+                </Badge>
+              }
+              subtitle={t(`alerts.notifications.status.${pushStatus.status}`)}
+              actions={
+                pushStatus.status === 'unsupported' ||
+                pushStatus.status === 'blocked' ? undefined : (
+                  <Button
+                    variant="secondary"
+                    className="h-10 px-4 text-sm"
+                    onClick={() => void pushStatus.toggle()}
+                    loading={pushStatus.isBusy}
+                  >
+                    {pushStatus.status === 'on'
+                      ? t('alerts.notifications.disable')
+                      : t('alerts.notifications.enable')}
+                  </Button>
+                )
+              }
+            />
+          </Panel>
+
+          <Panel flush className="animate-rise" style={{ '--i': 2 } as React.CSSProperties}>
+            {alertsQuery.isPending ? (
+              <ListRow.Skeleton rows={3} />
+            ) : alertsQuery.isError ? (
+              <div className="p-5">
+                <ErrorMessage
+                  message={
+                    alertsQuery.error instanceof ApiRequestError
+                      ? alertsQuery.error.message
+                      : t('errors.generic')
+                  }
+                  onRetry={() => void alertsQuery.refetch()}
+                />
+              </div>
+            ) : alerts.length === 0 ? (
+              <EmptyState
+                icon={<Icon.Bell />}
+                title={t('alerts.empty.title')}
+                description={t('alerts.empty.description')}
+                action={
+                  <Button onClick={openCreate}>
+                    <Icon.Plus weight="bold" />
+                    {t('alerts.newAlert')}
+                  </Button>
+                }
+              />
+            ) : (
+              <ListGroup className="pb-2">
+                {groups.map(([status, items]) =>
+                  items.length === 0 ? null : (
+                    <Fragment key={status}>
+                      <ListLabel className="border-0">{t(`alerts.list.${status}`)}</ListLabel>
+                      {items.map((alert) => (
+                        <ListRow
+                          key={alert.id}
+                          className="border-0"
+                          leading={<Avatar label={alert.coinSymbol} />}
+                          title={<span className="tabular">{conditionText(alert)}</span>}
+                          titleAside={
+                            <Badge tone={STATUS_TONE[alertStatus(alert)]}>
+                              {t(`alerts.list.${alertStatus(alert)}`)}
+                            </Badge>
+                          }
+                          subtitle={subtitleText(alert)}
+                          actions={rowActions(alert)}
+                        />
+                      ))}
+                    </Fragment>
+                  ),
+                )}
+              </ListGroup>
+            )}
+          </Panel>
+        </>
+      )}
 
       <Dialog
-        open={confirmingDelete}
-        onClose={() => setConfirmingDelete(false)}
+        open={actionsFor !== null}
+        onClose={() => setActionsFor(null)}
+        title={actionsFor ? conditionText(actionsFor) : ''}
+      >
+        <div className="flex flex-col gap-2 pb-2">
+          {actionsFor && alertStatus(actionsFor) !== 'active' ? (
+            <Button
+              variant="secondary"
+              size="lg"
+              fullWidth
+              onClick={() => actionsFor && void handleRearm(actionsFor)}
+            >
+              <Icon.ArrowsClockwise />
+              {t('alerts.actions.rearm')}
+            </Button>
+          ) : null}
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onClick={() => actionsFor && openEdit(actionsFor)}
+          >
+            <Icon.Pencil />
+            {t('common.edit')}
+          </Button>
+          <Button
+            variant="danger"
+            size="lg"
+            fullWidth
+            onClick={() => {
+              if (actionsFor) setDeleting(actionsFor);
+              setActionsFor(null);
+            }}
+          >
+            <Icon.Trash />
+            {t('common.delete')}
+          </Button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
         title={t('alerts.actions.deleteTitle')}
+        presentation="center"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setConfirmingDelete(false)}>
+            <Button variant="secondary" onClick={() => setDeleting(null)}>
               {t('common.cancel')}
             </Button>
             <Button
@@ -200,128 +396,10 @@ function AlertRow({ alert, currentPriceUsd, onEdit }: AlertRowProps) {
           </>
         }
       >
-        <p className="text-base text-slate-700 dark:text-slate-300">
-          {t('alerts.actions.confirmDelete', { coin: alert.coinSymbol })}
+        <p className="text-base text-ink-2">
+          {deleting ? t('alerts.actions.confirmDelete', { coin: conditionText(deleting) }) : null}
         </p>
       </Dialog>
-    </li>
-  );
-}
-
-export function AlertsPage() {
-  const { t } = useTranslation();
-  const { settings, updateSettings } = useSettings();
-  const alertsQuery = useAlerts();
-  const pushStatus = usePushStatus();
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingAlert, setEditingAlert] = useState<Alert | null>(null);
-
-  const alerts = useMemo(() => {
-    const list = alertsQuery.data?.alerts ?? [];
-    return [...list].sort((a, b) => STATUS_ORDER[alertStatus(a)] - STATUS_ORDER[alertStatus(b)]);
-  }, [alertsQuery.data]);
-
-  const coinIds = useMemo(() => Array.from(new Set(alerts.map((alert) => alert.coinId))), [alerts]);
-  const { prices } = usePrices(coinIds);
-
-  function openCreate() {
-    setEditingAlert(null);
-    setFormOpen(true);
-  }
-
-  function openEdit(alert: Alert) {
-    setEditingAlert(alert);
-    setFormOpen(true);
-  }
-
-  function closeForm() {
-    setFormOpen(false);
-    setEditingAlert(null);
-  }
-
-  const pushStatusLabel = t(`alerts.notifications.status.${pushStatus.status}`);
-  const pushToggleLabel =
-    pushStatus.status === 'on'
-      ? t('alerts.notifications.disable')
-      : t('alerts.notifications.enable');
-
-  return (
-    <>
-      <PageHeader
-        title={t('alerts.title')}
-        subtitle={t('alerts.subtitle')}
-        actions={
-          <Button onClick={openCreate}>
-            <PlusIcon className="size-5" />
-            {t('alerts.newAlert')}
-          </Button>
-        }
-      />
-
-      {!settings.alertsEnabled ? (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{t('alerts.offCard.title')}</CardTitle>
-          </CardHeader>
-          <p className="text-base text-slate-600 dark:text-slate-400">
-            {t('alerts.offCard.description')}
-          </p>
-          <Button className="mt-4" onClick={() => void updateSettings({ alertsEnabled: true })}>
-            {t('alerts.offCard.enable')}
-          </Button>
-        </Card>
-      ) : null}
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>{t('alerts.notifications.title')}</CardTitle>
-        </CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-base text-slate-600 dark:text-slate-400">{pushStatusLabel}</p>
-          {pushStatus.status === 'unsupported' || pushStatus.status === 'blocked' ? null : (
-            <Button
-              variant="secondary"
-              onClick={() => void pushStatus.toggle()}
-              loading={pushStatus.isBusy}
-            >
-              {pushToggleLabel}
-            </Button>
-          )}
-        </div>
-      </Card>
-
-      {alertsQuery.isPending ? (
-        <div className="flex justify-center py-12">
-          <Spinner size="lg" />
-        </div>
-      ) : alertsQuery.isError ? (
-        <ErrorMessage
-          message={
-            alertsQuery.error instanceof ApiRequestError
-              ? alertsQuery.error.message
-              : t('errors.generic')
-          }
-          onRetry={() => void alertsQuery.refetch()}
-        />
-      ) : alerts.length === 0 ? (
-        <EmptyState
-          icon={<BellIcon className="size-7" />}
-          title={t('alerts.empty.title')}
-          description={t('alerts.empty.description')}
-          action={<Button onClick={openCreate}>{t('alerts.newAlert')}</Button>}
-        />
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {alerts.map((alert) => (
-            <AlertRow
-              key={alert.id}
-              alert={alert}
-              currentPriceUsd={prices[alert.coinId]?.usd ?? null}
-              onEdit={() => openEdit(alert)}
-            />
-          ))}
-        </ul>
-      )}
 
       <AlertForm open={formOpen} onClose={closeForm} alert={editingAlert} />
     </>

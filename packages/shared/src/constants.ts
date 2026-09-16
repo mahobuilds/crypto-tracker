@@ -34,6 +34,14 @@ export const LANGUAGE_LOCALE: Record<Language, string> = {
   ar: 'ar-SA',
 };
 
+/** Trading fee applied to every transaction, as a fraction of quantity x price (0.1%). */
+export const FEE_RATE = 0.001;
+
+/** Fee for a trade in the transaction currency, rounded to cents. */
+export function calculateFee(quantity: number, pricePerUnit: number): number {
+  return Math.round(quantity * pricePerUnit * FEE_RATE * 100) / 100;
+}
+
 /** How often the client re-fetches live data, in milliseconds. */
 export const PRICE_REFRESH_INTERVAL_MS = 60_000;
 

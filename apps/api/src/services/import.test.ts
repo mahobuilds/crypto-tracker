@@ -45,7 +45,8 @@ describe('resolveRows', () => {
       quantity: 1,
       pricePerUnit: 100,
       currency: 'USD',
-      fee: 0,
+      // The fee is always recalculated at 0.1% of quantity x price; the CSV value is ignored.
+      fee: 0.1,
       occurredAt: '2024-01-01T00:00:00.000Z',
       note: null,
     });

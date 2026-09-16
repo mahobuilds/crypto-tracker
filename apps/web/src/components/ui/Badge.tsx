@@ -1,30 +1,38 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-export type BadgeTone = 'neutral' | 'positive' | 'negative' | 'info';
+/** `positive` / `negative` / `info` are kept as aliases of `gain` / `loss` / `accent`. */
+export type BadgeTone =
+  'neutral' | 'gain' | 'loss' | 'warn' | 'accent' | 'positive' | 'negative' | 'info';
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   tone?: BadgeTone;
+  icon?: ReactNode;
   children: ReactNode;
 }
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
-  neutral: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
-  positive: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
-  negative: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
-  info: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300',
+  neutral: 'bg-surface-2 text-ink-2',
+  gain: 'bg-gain-soft text-gain',
+  loss: 'bg-loss-soft text-loss',
+  warn: 'bg-warn-soft text-warn',
+  accent: 'bg-accent-soft text-accent',
+  positive: 'bg-gain-soft text-gain',
+  negative: 'bg-loss-soft text-loss',
+  info: 'bg-accent-soft text-accent',
 };
 
-export function Badge({ tone = 'neutral', className, children, ...rest }: BadgeProps) {
+export function Badge({ tone = 'neutral', icon, className, children, ...rest }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-1 text-sm font-semibold whitespace-nowrap',
+        'inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-medium whitespace-nowrap',
         TONE_CLASSES[tone],
         className,
       )}
       {...rest}
     >
+      {icon ? <span className="-ms-0.5 inline-flex [&>svg]:size-3.5">{icon}</span> : null}
       {children}
     </span>
   );

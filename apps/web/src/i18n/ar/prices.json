@@ -10,6 +10,5 @@
   "searchLabel": "ابحث عن عملة",
   "watchlist": "العملات المبحوث عنها مؤخراً",
   "removeFromWatchlist": "إزالة {{name}} من العملات المبحوث عنها",
-  "noPrice": "لا يوجد سعر",
-  "emDash": "—"
+  "noPrice": "لا يوجد سعر"
 }

@@ -13,21 +13,31 @@
     "disable": "Turn off",
     "status": {
       "unsupported": "Not supported on this device or browser.",
-      "blocked": "Blocked. Allow notifications for this site in your browser settings.",
-      "off": "Off for this device.",
-      "on": "On for this device."
+      "blocked": "Blocked in your browser settings. Allow notifications for this site to turn them on.",
+      "off": "Turn on to get a notification when an alert triggers.",
+      "on": "You will get a notification when an alert triggers."
+    },
+    "badge": {
+      "unsupported": "Unavailable",
+      "blocked": "Blocked",
+      "off": "Off",
+      "on": "On"
     }
   },
   "list": {
     "active": "Active",
     "paused": "Paused",
     "triggeredAt": "Triggered {{date}}",
-    "currentPrice": "Current price: {{price}}"
+    "currentPrice": "Current price: {{price}}",
+    "triggered": "Triggered",
+    "now": "Now",
+    "away": "{{pct}} away"
   },
   "actions": {
     "rearm": "Re-arm",
     "deleteTitle": "Delete alert",
-    "confirmDelete": "Delete the alert for {{coin}}?"
+    "confirmDelete": "Delete the alert for {{coin}}?",
+    "more": "More actions"
   },
   "empty": {
     "title": "No alerts yet",
@@ -44,10 +54,17 @@
     "targetPrice": "Target price (USD)",
     "useCurrentPrice": "Current price",
     "plus5": "+5%",
-    "minus5": "−5%"
+    "minus5": "−5%",
+    "save": "Save alert"
   },
   "banner": {
     "title": "Your alerts triggered",
     "item": "{{coin}} reached its target on {{date}}"
+  },
+  "toast": {
+    "saved": "Alert created",
+    "updated": "Alert updated",
+    "deleted": "Alert deleted",
+    "rearmed": "Alert is active again"
   }
 }

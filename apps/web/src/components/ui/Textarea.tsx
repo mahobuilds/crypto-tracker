@@ -16,7 +16,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       ref={ref}
       rows={rows}
       aria-invalid={invalid || undefined}
-      className={cn(inputClasses, 'min-h-24 resize-y', className)}
+      className={cn(inputClasses, 'h-auto min-h-24 resize-y py-3 leading-normal', className)}
       {...rest}
     />
   );

@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { CurrentUser, MeResponse, Settings } from '@crypto-tracker/shared';
-import { ErrorMessage, Spinner } from '@/components/ui';
+import { ErrorMessage } from '@/components/ui';
+import { AuthPending } from '@/app/auth/AuthGate';
 import { applyLanguage } from '@/i18n';
 import { ApiRequestError, apiFetch } from '@/lib/api';
 import { queryClient, queryKeys } from '@/lib/query';
@@ -106,11 +107,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   const query = useQuery({ queryKey: queryKeys.me, queryFn: fetchMe });
 
   if (query.isPending) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <AuthPending />;
   }
 
   if (query.isError) {

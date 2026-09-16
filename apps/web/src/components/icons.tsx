@@ -1,158 +1,82 @@
-import type { JSX, SVGProps } from 'react';
+import type { JSX } from 'react';
+import type { Icon as PhosphorIcon, IconWeight } from '@phosphor-icons/react';
+import {
+  ArrowDownRightIcon,
+  ArrowUpRightIcon,
+  ArrowsClockwiseIcon,
+  BellIcon as PhBell,
+  BellRingingIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+  ChartLineIcon,
+  ChartLineUpIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  ClockIcon,
+  CoinsIcon,
+  DotsThreeIcon,
+  FileCsvIcon,
+  FunnelIcon,
+  GearIcon as PhGear,
+  HouseIcon,
+  InfoIcon,
+  ListBulletsIcon,
+  MagnifyingGlassIcon,
+  MoonIcon,
+  PencilSimpleIcon,
+  PlusIcon as PhPlus,
+  SignOutIcon,
+  SlidersHorizontalIcon,
+  SparkleIcon,
+  SunIcon,
+  TextAaIcon,
+  TranslateIcon,
+  TrashIcon as PhTrash,
+  UploadSimpleIcon,
+  WarningCircleIcon,
+  WarningIcon,
+  XCircleIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 
+/**
+ * The one icon family (docs/DESIGN.md section 4): Phosphor, `regular` at 20 px for UI,
+ * `bold` for 16 px inline marks, `fill` only for the active nav item.
+ * Features import from this map and never from `@phosphor-icons/react` directly.
+ */
 export interface IconProps {
   className?: string;
+  weight?: IconWeight;
+  size?: number | string;
 }
 
-type SvgProps = SVGProps<SVGSVGElement> & { children: React.ReactNode };
+export type IconComponent = (props: IconProps) => JSX.Element;
 
-function Svg({ children, className, ...rest }: SvgProps): JSX.Element {
+function wrap(Phosphor: PhosphorIcon): IconComponent {
+  return function Icon({ className, weight = 'regular', size = 20 }: IconProps) {
+    return (
+      <Phosphor
+        className={className}
+        weight={weight}
+        size={size}
+        aria-hidden="true"
+        focusable="false"
+      />
+    );
+  };
+}
+
+/** The Google brand mark: the one hand-written SVG allowed in the app. */
+function Google({ className, size = 20 }: IconProps): JSX.Element {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      width={size}
+      height={size}
       aria-hidden="true"
       focusable="false"
-      className={className ?? 'size-6'}
-      {...rest}
-    >
-      {children}
-    </svg>
-  );
-}
-
-export function HomeIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M3 11.5 12 4l9 7.5" />
-      <path d="M5 10v10h14V10" />
-      <path d="M10 20v-6h4v6" />
-    </Svg>
-  );
-}
-
-export function ListIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M8 6h13M8 12h13M8 18h13" />
-      <path d="M3 6h.01M3 12h.01M3 18h.01" />
-    </Svg>
-  );
-}
-
-export function ChartIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M3 3v18h18" />
-      <path d="m7 15 4-5 4 3 5-7" />
-    </Svg>
-  );
-}
-
-export function BellIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M6 9a6 6 0 0 1 12 0v4l2 3H4l2-3z" />
-      <path d="M10 20a2 2 0 0 0 4 0" />
-    </Svg>
-  );
-}
-
-export function GearIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-    </Svg>
-  );
-}
-
-export function UploadIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M12 16V4" />
-      <path d="m7 9 5-5 5 5" />
-      <path d="M4 20h16" />
-    </Svg>
-  );
-}
-
-export function PlusIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M12 5v14M5 12h14" />
-    </Svg>
-  );
-}
-
-export function TrashIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M3 6h18" />
-      <path d="M8 6V4h8v2" />
-      <path d="M6 6l1 14h10l1-14" />
-      <path d="M10 11v6M14 11v6" />
-    </Svg>
-  );
-}
-
-export function PencilIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M17 3a2.8 2.8 0 0 1 4 4L8 20l-5 1 1-5z" />
-      <path d="m15 5 4 4" />
-    </Svg>
-  );
-}
-
-export function SearchIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" />
-    </Svg>
-  );
-}
-
-export function CloseIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M18 6 6 18M6 6l12 12" />
-    </Svg>
-  );
-}
-
-export function ChevronIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="m9 6 6 6-6 6" />
-    </Svg>
-  );
-}
-
-export function LogoutIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <path d="M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5" />
-      <path d="M14 8l4 4-4 4" />
-      <path d="M8 12h10" />
-    </Svg>
-  );
-}
-
-export function GoogleIcon({ className }: IconProps): JSX.Element {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-      className={className ?? 'size-6'}
+      className={className}
     >
       <path
         fill="#4285F4"
@@ -171,12 +95,61 @@ export function GoogleIcon({ className }: IconProps): JSX.Element {
   );
 }
 
-export function CoinIcon({ className }: IconProps): JSX.Element {
-  return (
-    <Svg className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="m8 14 3-3 2 2 4-5" />
-      <path d="M14 8h3v3" />
-    </Svg>
-  );
-}
+export const Icon = {
+  Home: wrap(HouseIcon),
+  List: wrap(ListBulletsIcon),
+  ChartLine: wrap(ChartLineIcon),
+  ChartLineUp: wrap(ChartLineUpIcon),
+  Bell: wrap(PhBell),
+  BellRinging: wrap(BellRingingIcon),
+  Gear: wrap(PhGear),
+  Upload: wrap(UploadSimpleIcon),
+  Plus: wrap(PhPlus),
+  Trash: wrap(PhTrash),
+  Pencil: wrap(PencilSimpleIcon),
+  MagnifyingGlass: wrap(MagnifyingGlassIcon),
+  X: wrap(XIcon),
+  CaretRight: wrap(CaretRightIcon),
+  CaretDown: wrap(CaretDownIcon),
+  SignOut: wrap(SignOutIcon),
+  SlidersHorizontal: wrap(SlidersHorizontalIcon),
+  ArrowUpRight: wrap(ArrowUpRightIcon),
+  ArrowDownRight: wrap(ArrowDownRightIcon),
+  Check: wrap(CheckIcon),
+  CheckCircle: wrap(CheckCircleIcon),
+  Warning: wrap(WarningIcon),
+  WarningCircle: wrap(WarningCircleIcon),
+  XCircle: wrap(XCircleIcon),
+  Info: wrap(InfoIcon),
+  Google,
+  Coins: wrap(CoinsIcon),
+  Sparkle: wrap(SparkleIcon),
+  Clock: wrap(ClockIcon),
+  FileCsv: wrap(FileCsvIcon),
+  Moon: wrap(MoonIcon),
+  Sun: wrap(SunIcon),
+  TextAa: wrap(TextAaIcon),
+  Translate: wrap(TranslateIcon),
+  DotsThree: wrap(DotsThreeIcon),
+  Funnel: wrap(FunnelIcon),
+  ArrowsClockwise: wrap(ArrowsClockwiseIcon),
+} satisfies Record<string, IconComponent>;
+
+export type IconName = keyof typeof Icon;
+
+/* Legacy names kept so existing feature imports compile unchanged. New code uses `Icon.*`. */
+export const HomeIcon = Icon.Home;
+export const ListIcon = Icon.List;
+export const ChartIcon = Icon.ChartLine;
+export const BellIcon = Icon.Bell;
+export const GearIcon = Icon.Gear;
+export const UploadIcon = Icon.Upload;
+export const PlusIcon = Icon.Plus;
+export const TrashIcon = Icon.Trash;
+export const PencilIcon = Icon.Pencil;
+export const SearchIcon = Icon.MagnifyingGlass;
+export const CloseIcon = Icon.X;
+export const ChevronIcon = Icon.CaretRight;
+export const LogoutIcon = Icon.SignOut;
+export const GoogleIcon = Icon.Google;
+export const CoinIcon = Icon.Coins;

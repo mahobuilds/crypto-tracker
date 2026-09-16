@@ -139,13 +139,28 @@ export interface Holding {
   allocationPct: number | null;
 }
 
-/** Response of `GET /api/portfolio`. */
+/** Profit/loss figures under one cost-basis method. */
+export interface PnlByMethod {
+  realizedPnlUsd: number;
+  /** Cost basis of what is still held. */
+  investedUsd: number;
+  /** Over priced holdings only; null when nothing is priced. */
+  unrealizedPnlUsd: number | null;
+  unrealizedPnlPct: number | null;
+}
+
+/** Response of `GET /api/portfolio`. Top-level figures use the average-cost method. */
 export interface PortfolioSummary {
   totalValueUsd: number;
   investedUsd: number;
   unrealizedPnlUsd: number;
   unrealizedPnlPct: number;
   realizedPnlUsd: number;
+  /** The same trades valued two ways, shown side by side on the dashboard. */
+  methods: {
+    average: PnlByMethod;
+    fifo: PnlByMethod;
+  };
   holdings: Holding[];
   fx: FxRates;
   pricesUpdatedAt: string | null;

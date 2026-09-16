@@ -51,6 +51,9 @@ export function registerCronJobs(): void {
 /** Builds the Hono app: `/api/*` routes, then the built SPA from `apps/web/dist` with SPA fallback. */
 export function createApp(env: Env, db: Database): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  console.log(
+    `[static] web dist: ${webDistDir} (index.html ${readIndexHtml() === null ? 'missing' : 'found'})`,
+  );
 
   app.use('/api/*', withContext(env, db));
   app.route('/api/health', healthRoutes);

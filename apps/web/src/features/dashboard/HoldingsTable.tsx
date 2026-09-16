@@ -1,10 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import type { Holding } from '@crypto-tracker/shared';
-import type { Currency, FxRates, Language } from '@crypto-tracker/shared';
-import { Badge, Card, CardHeader, CardTitle, PnlText } from '@/components/ui';
-import { formatMoneyUsd, formatPct, formatQuantity } from '@/lib/format';
-
-const EM_DASH = '—';
+import type { Currency, FxRates, Holding, Language } from '@crypto-tracker/shared';
+import { Avatar, Badge, ListGroup, ListRow, Panel, PnlText } from '@/components/ui';
+import { formatMoneyUsd, formatPct, formatQuantity, formatSignedMoneyUsd } from '@/lib/format';
 
 export interface HoldingsTableProps {
   holdings: Holding[];
@@ -13,153 +10,122 @@ export interface HoldingsTableProps {
   language: Language;
 }
 
-interface HoldingRowProps {
+const NO_VALUE = '-';
+
+function money(amountUsd: number | null, currency: Currency, fx: FxRates, language: Language) {
+  return amountUsd === null ? NO_VALUE : formatMoneyUsd(amountUsd, currency, fx, language);
+}
+
+function PnlCell({
+  holding,
+  currency,
+  fx,
+  language,
+}: {
   holding: Holding;
   currency: Currency;
   fx: FxRates;
   language: Language;
-}
-
-function money(amountUsd: number | null, currency: Currency, fx: FxRates, language: Language) {
-  return amountUsd === null ? EM_DASH : formatMoneyUsd(amountUsd, currency, fx, language);
-}
-
-function pct(value: number | null, language: Language) {
-  return value === null ? EM_DASH : formatPct(value, language);
-}
-
-function HoldingRow({ holding, currency, fx, language }: HoldingRowProps) {
-  const { t } = useTranslation();
-  const unpriced = holding.currentPriceUsd === null;
+}) {
+  if (holding.unrealizedPnlUsd === null || holding.unrealizedPnlPct === null) {
+    return <span className="text-ink-3">{NO_VALUE}</span>;
+  }
   return (
-    <tr className="border-b border-slate-100 last:border-0 dark:border-slate-800">
-      <td className="py-3 pe-4">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold">{holding.coinSymbol}</span>
-          <span className="truncate text-sm text-slate-600 dark:text-slate-400">
-            {holding.coinName}
-          </span>
-          {unpriced ? <Badge tone="neutral">{t('dashboard.holdings.noPrice')}</Badge> : null}
-        </div>
-      </td>
-      <td className="py-3 pe-4 text-end">{formatQuantity(holding.quantity, language)}</td>
-      <td className="py-3 pe-4 text-end">
-        {formatMoneyUsd(holding.averageCostUsd, currency, fx, language)}
-      </td>
-      <td className="py-3 pe-4 text-end">
-        {money(holding.currentPriceUsd, currency, fx, language)}
-      </td>
-      <td className="py-3 pe-4 text-end">
-        {money(holding.currentValueUsd, currency, fx, language)}
-      </td>
-      <td className="py-3 pe-4 text-end">
-        {holding.unrealizedPnlUsd === null || holding.unrealizedPnlPct === null ? (
-          EM_DASH
-        ) : (
-          <PnlText value={holding.unrealizedPnlUsd}>
-            {money(holding.unrealizedPnlUsd, currency, fx, language)} (
-            {pct(holding.unrealizedPnlPct, language)})
-          </PnlText>
-        )}
-      </td>
-      <td className="py-3 text-end">{pct(holding.allocationPct, language)}</td>
-    </tr>
-  );
-}
-
-function HoldingCard({ holding, currency, fx, language }: HoldingRowProps) {
-  const { t } = useTranslation();
-  const unpriced = holding.currentPriceUsd === null;
-  return (
-    <Card className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold">{holding.coinSymbol}</p>
-          <p className="truncate text-sm text-slate-600 dark:text-slate-400">{holding.coinName}</p>
-        </div>
-        {unpriced ? <Badge tone="neutral">{t('dashboard.holdings.noPrice')}</Badge> : null}
-      </div>
-      <dl className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <dt className="text-slate-600 dark:text-slate-400">{t('dashboard.holdings.quantity')}</dt>
-          <dd className="text-base font-medium">{formatQuantity(holding.quantity, language)}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-600 dark:text-slate-400">{t('dashboard.holdings.value')}</dt>
-          <dd className="text-base font-medium">
-            {money(holding.currentValueUsd, currency, fx, language)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-slate-600 dark:text-slate-400">{t('dashboard.holdings.pnl')}</dt>
-          <dd className="text-base font-medium">
-            {holding.unrealizedPnlUsd === null || holding.unrealizedPnlPct === null ? (
-              EM_DASH
-            ) : (
-              <PnlText value={holding.unrealizedPnlUsd}>
-                {money(holding.unrealizedPnlUsd, currency, fx, language)} (
-                {pct(holding.unrealizedPnlPct, language)})
-              </PnlText>
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-slate-600 dark:text-slate-400">
-            {t('dashboard.holdings.allocation')}
-          </dt>
-          <dd className="text-base font-medium">{pct(holding.allocationPct, language)}</dd>
-        </div>
-      </dl>
-    </Card>
+    <PnlText value={holding.unrealizedPnlUsd} iconSize={14}>
+      {formatSignedMoneyUsd(holding.unrealizedPnlUsd, currency, fx, language)}
+      <span className="ms-1 font-normal opacity-80">
+        ({formatPct(holding.unrealizedPnlPct, language)})
+      </span>
+    </PnlText>
   );
 }
 
 export function HoldingsTable({ holdings, currency, fx, language }: HoldingsTableProps) {
   const { t } = useTranslation();
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('dashboard.holdings.title')}</CardTitle>
-      </CardHeader>
+  const headCell = 'px-3 py-3 text-xs font-medium tracking-[0.04em] text-ink-3 uppercase';
+  const cell = 'tabular px-3 py-3.5 text-[0.9375rem]';
 
-      <div className="flex flex-col gap-3 md:hidden">
-        {holdings.map((holding) => (
-          <HoldingCard
-            key={holding.coinId}
-            holding={holding}
-            currency={currency}
-            fx={fx}
-            language={language}
+  return (
+    <Panel
+      flush
+      title={t('dashboard.holdings.title')}
+      actions={<Badge>{t('dashboard.allocation.coins', { count: holdings.length })}</Badge>}
+    >
+      {/* Phone: rows */}
+      <ListGroup className="md:hidden">
+        {holdings.map((h) => (
+          <ListRow
+            key={h.coinId}
+            leading={<Avatar label={h.coinSymbol} />}
+            title={h.coinSymbol}
+            titleAside={
+              h.currentPriceUsd === null ? (
+                <Badge>{t('dashboard.holdings.noPrice')}</Badge>
+              ) : undefined
+            }
+            subtitle={`${formatQuantity(h.quantity, language)} ${h.coinSymbol} · ${t('dashboard.holdings.avgShort')} ${formatMoneyUsd(h.averageCostUsd, currency, fx, language)}`}
+            trailing={money(h.currentValueUsd, currency, fx, language)}
+            trailingSub={
+              h.unrealizedPnlPct === null ? undefined : (
+                <PnlText value={h.unrealizedPnlPct} iconSize={12} className="text-[0.8125rem]">
+                  {formatPct(h.unrealizedPnlPct, language)}
+                </PnlText>
+              )
+            }
           />
         ))}
-      </div>
+      </ListGroup>
 
+      {/* Laptop: table */}
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-sm">
+        <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 text-start text-slate-600 dark:border-slate-800 dark:text-slate-400">
-              <th className="py-2 pe-4 text-start font-medium">{t('dashboard.holdings.coin')}</th>
-              <th className="py-2 pe-4 text-end font-medium">{t('dashboard.holdings.quantity')}</th>
-              <th className="py-2 pe-4 text-end font-medium">{t('dashboard.holdings.avgCost')}</th>
-              <th className="py-2 pe-4 text-end font-medium">{t('dashboard.holdings.price')}</th>
-              <th className="py-2 pe-4 text-end font-medium">{t('dashboard.holdings.value')}</th>
-              <th className="py-2 pe-4 text-end font-medium">{t('dashboard.holdings.pnl')}</th>
-              <th className="py-2 text-end font-medium">{t('dashboard.holdings.allocation')}</th>
+            <tr className="bg-surface-2 text-start">
+              <th className={`${headCell} ps-6 text-start`}>{t('dashboard.holdings.coin')}</th>
+              <th className={`${headCell} text-end`}>{t('dashboard.holdings.quantity')}</th>
+              <th className={`${headCell} text-end`}>{t('dashboard.holdings.avgCost')}</th>
+              <th className={`${headCell} text-end`}>{t('dashboard.holdings.price')}</th>
+              <th className={`${headCell} text-end`}>{t('dashboard.holdings.value')}</th>
+              <th className={`${headCell} text-end`}>{t('dashboard.holdings.pnl')}</th>
+              <th className={`${headCell} pe-6 text-end`}>{t('dashboard.holdings.allocation')}</th>
             </tr>
           </thead>
-          <tbody>
-            {holdings.map((holding) => (
-              <HoldingRow
-                key={holding.coinId}
-                holding={holding}
-                currency={currency}
-                fx={fx}
-                language={language}
-              />
+          <tbody className="divide-y divide-line">
+            {holdings.map((h) => (
+              <tr key={h.coinId} className="transition-colors hover:bg-surface-2/60">
+                <td className={`${cell} ps-6`}>
+                  <div className="flex items-center gap-3">
+                    <Avatar label={h.coinSymbol} size="sm" />
+                    <span className="font-semibold">{h.coinSymbol}</span>
+                    <span className="truncate text-ink-3">{h.coinName}</span>
+                    {h.currentPriceUsd === null ? (
+                      <Badge>{t('dashboard.holdings.noPrice')}</Badge>
+                    ) : null}
+                  </div>
+                </td>
+                <td className={`${cell} text-end`}>{formatQuantity(h.quantity, language)}</td>
+                <td className={`${cell} text-end text-ink-2`}>
+                  {formatMoneyUsd(h.averageCostUsd, currency, fx, language)}
+                </td>
+                <td className={`${cell} text-end`}>
+                  {money(h.currentPriceUsd, currency, fx, language)}
+                </td>
+                <td className={`${cell} text-end font-semibold`}>
+                  {money(h.currentValueUsd, currency, fx, language)}
+                </td>
+                <td className={`${cell} text-end`}>
+                  <PnlCell holding={h} currency={currency} fx={fx} language={language} />
+                </td>
+                <td className={`${cell} pe-6 text-end text-ink-2`}>
+                  {h.allocationPct === null
+                    ? NO_VALUE
+                    : formatPct(h.allocationPct, language, { signed: false })}
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </Card>
+    </Panel>
   );
 }

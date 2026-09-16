@@ -233,6 +233,15 @@ importers:
       '@crypto-tracker/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@fontsource/ibm-plex-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/ibm-plex-sans-arabic':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@phosphor-icons/react':
+        specifier: ^2.1.10
+        version: 2.1.10(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@supabase/supabase-js':
         specifier: ^2.116.0
         version: 2.116.0
@@ -1284,6 +1293,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@fontsource/ibm-plex-sans-arabic@5.3.0':
+    resolution: {integrity: sha512-ZZ4g+JDgQY0NqSh4o0MNWU1sHQmtcee1g++aKAwyJvZxnT5y51JXsN1cIXnaQaMd40dcbK6QFYa+Z1LbaiNuqA==}
+
+  '@fontsource/ibm-plex-sans@5.3.0':
+    resolution: {integrity: sha512-CbE4CbbEEZJX860XyUiRpsksXIQR8Rp2XDva2VO53NJox9tVNtusrysd2x5YkUEY3ErQ66W1IiiQL8/wihhw5w==}
+
   '@hono/node-server@2.1.1':
     resolution: {integrity: sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg==}
     engines: {node: '>=20'}
@@ -1319,6 +1334,13 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [glibc]
+
+  '@phosphor-icons/react@2.1.10':
+    resolution: {integrity: sha512-vt8Tvq8GLjheAZZYa+YG/pW7HDbov8El/MANW8pOAz4eGxrwhnbfrQZq0Cp4q8zBEu8NIhHdnr+r8thnfRSNYA==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>= 16.8'
+      react-dom: '>= 16.8'
 
   '@reduxjs/toolkit@2.12.0':
     resolution: {integrity: sha512-KiT+RzZbp6mQET+Mg+h2c97+9j1sNflUxQkIHI7Yuzf6Peu+OYpmkn6nbHWmLLWj+1ZODUJFwGZ7gx3L9R9EOw==}
@@ -4177,6 +4199,10 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
+  '@fontsource/ibm-plex-sans-arabic@5.3.0': {}
+
+  '@fontsource/ibm-plex-sans@5.3.0': {}
+
   '@hono/node-server@2.1.1(hono@4.13.7)':
     dependencies:
       hono: 4.13.7
@@ -4209,6 +4235,11 @@ snapshots:
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
+
+  '@phosphor-icons/react@2.1.10(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   '@reduxjs/toolkit@2.12.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)':
     dependencies:

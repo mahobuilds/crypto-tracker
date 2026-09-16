@@ -1,4 +1,5 @@
 import {
+  calculateFee,
   transactionInputSchema,
   type CsvRowResult,
   type ImportRowResult,
@@ -57,7 +58,7 @@ export async function resolveRows(
       quantity: row.values.quantity,
       pricePerUnit: row.values.pricePerUnit,
       currency: row.values.currency,
-      fee: row.values.fee,
+      fee: calculateFee(row.values.quantity, row.values.pricePerUnit),
       occurredAt: row.values.occurredAt,
       note: row.values.note,
     };

@@ -13,6 +13,15 @@ describe('computePortfolio', () => {
       unrealizedPnlUsd: 0,
       unrealizedPnlPct: 0,
       realizedPnlUsd: 0,
+      methods: {
+        average: {
+          realizedPnlUsd: 0,
+          investedUsd: 0,
+          unrealizedPnlUsd: null,
+          unrealizedPnlPct: null,
+        },
+        fifo: { realizedPnlUsd: 0, investedUsd: 0, unrealizedPnlUsd: null, unrealizedPnlPct: null },
+      },
       holdings: [],
       fx,
       pricesUpdatedAt: null,

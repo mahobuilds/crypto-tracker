@@ -14,6 +14,7 @@ export interface SpinnerProps {
   className?: string;
 }
 
+/** Inline activity indicator for buttons and small inline waits. Pages use `Skeleton`. */
 export function Spinner({ size = 'md', className }: SpinnerProps) {
   const { t } = useTranslation();
   return (
@@ -21,7 +22,7 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
       role="status"
       aria-label={t('common.loading')}
       className={cn(
-        'inline-block animate-spin rounded-full border-current border-e-transparent text-indigo-600 dark:text-indigo-400',
+        'inline-block animate-spin rounded-full border-current border-e-transparent text-accent',
         SIZE_CLASSES[size],
         className,
       )}

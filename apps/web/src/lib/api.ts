@@ -1,5 +1,6 @@
 import type { ApiErrorBody } from '@crypto-tracker/shared';
 import { supabase } from '@/lib/supabase';
+import { isMockEnabled, mockResponse } from '@/dev/mock';
 
 export class ApiRequestError extends Error {
   constructor(
@@ -23,6 +24,13 @@ function isApiErrorBody(value: unknown): value is ApiErrorBody {
 }
 
 export async function apiFetch<T>(path: string, init: ApiInit = {}): Promise<T> {
+  if (import.meta.env.DEV && isMockEnabled()) {
+    const mocked = mockResponse(path, init);
+    if (mocked !== null) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      return mocked as T;
+    }
+  }
   const { json, headers, ...rest } = init;
   const requestHeaders = new Headers(headers);
   let body = rest.body;

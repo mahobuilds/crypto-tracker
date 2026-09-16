@@ -1,23 +1,22 @@
 import { useCallback, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CURRENCIES,
   CURRENCY_SYMBOLS,
-  LANGUAGES,
-  THEMES,
   type ChartKind,
-  type Currency,
-  type Language,
   type Settings,
-  type Theme,
 } from '@crypto-tracker/shared';
+import { Icon } from '@/components/icons';
 import {
+  Avatar,
   Button,
-  Card,
-  CardTitle,
   ErrorMessage,
-  Field,
+  ListGroup,
+  ListRow,
   PageHeader,
+  Panel,
+  SegmentedControl,
   Select,
   Spinner,
   Toggle,
@@ -25,27 +24,31 @@ import {
 import { useSettings } from '@/app/settings/SettingsProvider';
 import { signOut } from '@/app/auth/client';
 
-const LANGUAGE_LABEL_KEYS: Record<Language, string> = {
-  en: 'settings.languageEnglish',
-  ar: 'settings.languageArabic',
-};
-
-const THEME_LABEL_KEYS: Record<Theme, string> = {
-  light: 'settings.themeLight',
-  dark: 'settings.themeDark',
-  system: 'settings.themeSystem',
-};
-
-const CHART_KIND_LABEL_KEYS: Record<ChartKind, string> = {
-  line: 'settings.chartLine',
-  pie: 'settings.chartPie',
-};
+function SettingRow({
+  title,
+  subtitle,
+  control,
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  control: ReactNode;
+}) {
+  return (
+    <ListRow
+      multiline
+      title={title}
+      subtitle={subtitle}
+      actions={<div className="flex items-center ps-2">{control}</div>}
+    />
+  );
+}
 
 export function SettingsPage() {
   const { t } = useTranslation();
   const { user, settings, updateSettings, isSaving } = useSettings();
   const [lastPatch, setLastPatch] = useState<Partial<Settings> | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   const applyPatch = useCallback(
     async (patch: Partial<Settings>) => {
@@ -60,34 +63,24 @@ export function SettingsPage() {
     [t, updateSettings],
   );
 
-  const retryLastPatch = useCallback(() => {
-    if (lastPatch) {
-      void applyPatch(lastPatch);
-    }
-  }, [applyPatch, lastPatch]);
-
-  const languageOptions = LANGUAGES.map((language) => ({
-    value: language,
-    label: t(LANGUAGE_LABEL_KEYS[language]),
-  }));
-
   const currencyOptions = CURRENCIES.map((currency) => ({
     value: currency,
     label: `${CURRENCY_SYMBOLS[currency]} ${currency}`,
   }));
 
-  const themeOptions = THEMES.map((theme) => ({
-    value: theme,
-    label: t(THEME_LABEL_KEYS[theme]),
-  }));
+  const firstChart: ChartKind = settings.chartPrefs.order[0] ?? 'line';
 
-  const chartOrderOptions = settings.chartPrefs.order.map((kind) => ({
-    value: kind,
-    label: t(CHART_KIND_LABEL_KEYS[kind]),
-  }));
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      setSigningOut(false);
+    }
+  }
 
   return (
-    <>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <PageHeader
         title={
           <span className="inline-flex items-center gap-3">
@@ -99,139 +92,193 @@ export function SettingsPage() {
       />
 
       {saveError ? (
-        <ErrorMessage className="mb-6" message={saveError} onRetry={retryLastPatch} />
+        <ErrorMessage message={saveError} onRetry={() => lastPatch && void applyPatch(lastPatch)} />
       ) : null}
 
-      <div className="flex flex-col gap-6">
-        <Card>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-4">
-              {user.image ? (
-                <img
-                  src={user.image}
-                  alt=""
-                  className="size-14 shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <span
-                  aria-hidden="true"
-                  className="flex size-14 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-lg font-semibold text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200"
-                >
-                  {user.name.charAt(0).toUpperCase()}
-                </span>
-              )}
-              <div className="min-w-0">
-                <p className="truncate text-lg font-semibold">{user.name}</p>
-                <p className="truncate text-sm text-slate-600 dark:text-slate-400">{user.email}</p>
-              </div>
-            </div>
-            <Button variant="secondary" size="lg" onClick={() => void signOut()}>
-              {t('settings.signOut')}
-            </Button>
-          </div>
-        </Card>
+      <Panel flush className="animate-rise" style={{ '--i': 1 } as React.CSSProperties}>
+        <ListRow
+          leading={<Avatar label={user.name} src={user.image} size="lg" />}
+          title={user.name}
+          subtitle={user.email}
+        />
+      </Panel>
 
-        <Card>
-          <CardTitle>{t('settings.displayTitle')}</CardTitle>
-          <div className="mt-4 flex flex-col gap-5">
-            <Field htmlFor="settings-language" label={t('settings.language')}>
-              <Select
-                id="settings-language"
-                options={languageOptions}
+      <Panel
+        flush
+        title={t('settings.displayTitle')}
+        className="animate-rise"
+        style={{ '--i': 2 } as React.CSSProperties}
+      >
+        <ListGroup className="pb-2">
+          <SettingRow
+            title={t('settings.language')}
+            control={
+              <SegmentedControl
+                size="sm"
+                label={t('settings.language')}
                 value={settings.language}
-                onChange={(event) => void applyPatch({ language: event.target.value as Language })}
+                onChange={(language) => void applyPatch({ language })}
+                options={[
+                  { value: 'en', label: <span lang="en">{t('settings.languageEnglish')}</span> },
+                  { value: 'ar', label: <span lang="ar">{t('settings.languageArabic')}</span> },
+                ]}
               />
-            </Field>
-
-            <Field htmlFor="settings-currency" label={t('settings.baseCurrency')}>
+            }
+          />
+          <SettingRow
+            title={t('settings.baseCurrency')}
+            subtitle={t('settings.baseCurrencyHint')}
+            control={
               <Select
-                id="settings-currency"
+                aria-label={t('settings.baseCurrency')}
                 options={currencyOptions}
                 value={settings.baseCurrency}
                 onChange={(event) =>
-                  void applyPatch({ baseCurrency: event.target.value as Currency })
+                  void applyPatch({ baseCurrency: event.target.value as Settings['baseCurrency'] })
                 }
+                className="h-10 w-28 text-sm"
               />
-            </Field>
-
-            <Field htmlFor="settings-theme" label={t('settings.theme')}>
-              <Select
-                id="settings-theme"
-                options={themeOptions}
+            }
+          />
+          <SettingRow
+            title={t('settings.theme')}
+            control={
+              <SegmentedControl
+                size="sm"
+                label={t('settings.theme')}
                 value={settings.theme}
-                onChange={(event) => void applyPatch({ theme: event.target.value as Theme })}
+                onChange={(theme) => void applyPatch({ theme })}
+                options={[
+                  {
+                    value: 'light',
+                    label: '',
+                    icon: <Icon.Sun />,
+                    'aria-label': t('settings.themeLight'),
+                  },
+                  {
+                    value: 'dark',
+                    label: '',
+                    icon: <Icon.Moon />,
+                    'aria-label': t('settings.themeDark'),
+                  },
+                  { value: 'system', label: t('settings.themeSystemShort') },
+                ]}
               />
-            </Field>
+            }
+          />
+          <SettingRow
+            title={t('settings.largeText')}
+            subtitle={t('settings.largeTextHint')}
+            control={
+              <Toggle
+                checked={settings.largeText}
+                onChange={(largeText) => void applyPatch({ largeText })}
+                label={t('settings.largeText')}
+                hideLabel
+              />
+            }
+          />
+        </ListGroup>
+      </Panel>
 
-            <Toggle
-              id="settings-large-text"
-              checked={settings.largeText}
-              onChange={(checked) => void applyPatch({ largeText: checked })}
-              label={t('settings.largeText')}
-              description={t('settings.largeTextHint')}
-            />
-          </div>
-        </Card>
+      <Panel
+        flush
+        title={t('settings.alertsTitle')}
+        className="animate-rise"
+        style={{ '--i': 3 } as React.CSSProperties}
+      >
+        <ListGroup className="pb-2">
+          <SettingRow
+            title={t('settings.alertsEnabled')}
+            subtitle={t('settings.alertsEnabledHint')}
+            control={
+              <Toggle
+                checked={settings.alertsEnabled}
+                onChange={(alertsEnabled) => void applyPatch({ alertsEnabled })}
+                label={t('settings.alertsEnabled')}
+                hideLabel
+              />
+            }
+          />
+        </ListGroup>
+      </Panel>
 
-        <Card>
-          <CardTitle>{t('settings.alertsTitle')}</CardTitle>
-          <div className="mt-4">
-            <Toggle
-              id="settings-alerts-enabled"
-              checked={settings.alertsEnabled}
-              onChange={(checked) => void applyPatch({ alertsEnabled: checked })}
-              label={t('settings.alertsEnabled')}
-              description={t('settings.alertsEnabledHint')}
-            />
-          </div>
-        </Card>
-
-        <Card>
-          <CardTitle>{t('settings.chartsTitle')}</CardTitle>
-          <div className="mt-4 flex flex-col gap-5">
-            <Toggle
-              id="settings-chart-line"
-              checked={settings.chartPrefs.lineChart}
-              onChange={(checked) =>
-                void applyPatch({
-                  chartPrefs: { ...settings.chartPrefs, lineChart: checked },
-                })
-              }
-              label={t('settings.chartLine')}
-            />
-
-            <Toggle
-              id="settings-chart-pie"
-              checked={settings.chartPrefs.pieChart}
-              onChange={(checked) =>
-                void applyPatch({
-                  chartPrefs: { ...settings.chartPrefs, pieChart: checked },
-                })
-              }
-              label={t('settings.chartPie')}
-            />
-
-            <Field htmlFor="settings-chart-order" label={t('settings.chartsShowFirst')}>
-              <Select
-                id="settings-chart-order"
-                options={chartOrderOptions}
-                value={settings.chartPrefs.order[0]}
-                onChange={(event) => {
-                  const first = event.target.value as ChartKind;
-                  const rest = settings.chartPrefs.order.filter((kind) => kind !== first);
+      <Panel
+        flush
+        title={t('settings.chartsTitle')}
+        className="animate-rise"
+        style={{ '--i': 4 } as React.CSSProperties}
+      >
+        <ListGroup className="pb-2">
+          <SettingRow
+            title={t('settings.chartLine')}
+            control={
+              <Toggle
+                checked={settings.chartPrefs.lineChart}
+                onChange={(lineChart) =>
+                  void applyPatch({ chartPrefs: { ...settings.chartPrefs, lineChart } })
+                }
+                label={t('settings.chartLine')}
+                hideLabel
+              />
+            }
+          />
+          <SettingRow
+            title={t('settings.chartPie')}
+            control={
+              <Toggle
+                checked={settings.chartPrefs.pieChart}
+                onChange={(pieChart) =>
+                  void applyPatch({ chartPrefs: { ...settings.chartPrefs, pieChart } })
+                }
+                label={t('settings.chartPie')}
+                hideLabel
+              />
+            }
+          />
+          <SettingRow
+            title={t('settings.chartsShowFirst')}
+            control={
+              <SegmentedControl
+                size="sm"
+                label={t('settings.chartsShowFirst')}
+                value={firstChart}
+                onChange={(kind) =>
                   void applyPatch({
-                    chartPrefs: { ...settings.chartPrefs, order: [first, ...rest] },
-                  });
-                }}
+                    chartPrefs: {
+                      ...settings.chartPrefs,
+                      order: kind === 'line' ? ['line', 'pie'] : ['pie', 'line'],
+                    },
+                  })
+                }
+                options={[
+                  { value: 'line', label: t('settings.chartLineShort') },
+                  { value: 'pie', label: t('settings.chartPieShort') },
+                ]}
               />
-            </Field>
-          </div>
-        </Card>
-      </div>
+            }
+          />
+        </ListGroup>
+      </Panel>
 
-      <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-500">
-        {t('common.appName')} {t('settings.version')}
-      </p>
-    </>
+      <div
+        className="animate-rise mt-2 flex flex-col items-center gap-3"
+        style={{ '--i': 5 } as React.CSSProperties}
+      >
+        <Button
+          variant="danger"
+          size="lg"
+          loading={signingOut}
+          onClick={() => void handleSignOut()}
+          className="w-full sm:w-auto"
+        >
+          <Icon.SignOut className="rtl:-scale-x-100" />
+          {t('settings.signOut')}
+        </Button>
+        <span className="text-caption text-ink-3">
+          {t('common.appName')} {t('settings.version')}
+        </span>
+      </div>
+    </div>
   );
 }

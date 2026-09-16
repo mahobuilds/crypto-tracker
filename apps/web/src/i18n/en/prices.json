@@ -10,6 +10,5 @@
   "searchLabel": "Search for a coin",
   "watchlist": "Recently searched",
   "removeFromWatchlist": "Remove {{name}} from your searched coins",
-  "noPrice": "No price",
-  "emDash": "—"
+  "noPrice": "No price"
 }

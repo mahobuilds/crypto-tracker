@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { Icon } from '@/components/icons';
 
 export interface FieldProps {
   /** Id of the control this field labels. */
@@ -21,13 +22,13 @@ export function fieldErrorId(htmlFor: string): string {
 
 export function Field({ htmlFor, label, hint, error, className, children }: FieldProps) {
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <label htmlFor={htmlFor} className="text-base font-medium text-slate-800 dark:text-slate-200">
+    <div className={cn('flex flex-col gap-2', className)}>
+      <label htmlFor={htmlFor} className="text-label text-ink">
         {label}
       </label>
       {children}
       {hint ? (
-        <p id={fieldDescriptionId(htmlFor)} className="text-sm text-slate-600 dark:text-slate-400">
+        <p id={fieldDescriptionId(htmlFor)} className="text-caption text-ink-2">
           {hint}
         </p>
       ) : null}
@@ -35,9 +36,12 @@ export function Field({ htmlFor, label, hint, error, className, children }: Fiel
         <p
           id={fieldErrorId(htmlFor)}
           role="alert"
-          className="text-sm font-medium text-red-700 dark:text-red-400"
+          className="text-caption flex items-start gap-1.5 font-medium text-loss"
         >
-          {error}
+          <span className="mt-px shrink-0">
+            <Icon.Warning weight="bold" size={16} />
+          </span>
+          <span>{error}</span>
         </p>
       ) : null}
     </div>

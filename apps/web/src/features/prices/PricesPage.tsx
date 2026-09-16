@@ -1,18 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { useNavigate } from 'react-router';
 import type { CoinSearchResult, PortfolioSummary } from '@crypto-tracker/shared';
-import { ChartIcon } from '@/components/icons';
+import { Icon } from '@/components/icons';
 import { CoinPicker } from '@/components/CoinPicker';
 import {
-  Card,
-  CardHeader,
-  CardTitle,
+  Button,
   EmptyState,
   ErrorMessage,
+  ListGroup,
+  ListLabel,
+  ListRow,
   PageHeader,
-  Spinner,
+  Panel,
 } from '@/components/ui';
 import { formatRelative } from '@/lib/format';
 import { apiFetch } from '@/lib/api';
@@ -28,6 +29,7 @@ function fetchPortfolio(): Promise<PortfolioSummary> {
 
 export function PricesPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { settings } = useSettings();
   const [selectedCoin, setSelectedCoin] = useState<CoinSearchResult | null>(null);
   const { watchlist, addToWatchlist, removeFromWatchlist } = useWatchlist();
@@ -47,9 +49,7 @@ export function PricesPage() {
 
   function handleCoinSelected(coin: CoinSearchResult | null) {
     setSelectedCoin(coin);
-    if (coin) {
-      addToWatchlist(coin);
-    }
+    if (coin) addToWatchlist(coin);
   }
 
   return (
@@ -65,33 +65,34 @@ export function PricesPage() {
         }
       />
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>{t('prices.yourCoins')}</CardTitle>
-        </CardHeader>
-
+      <Panel
+        flush
+        title={t('prices.yourCoins')}
+        className="animate-rise"
+        style={{ '--i': 1 } as React.CSSProperties}
+      >
         {portfolio.isPending ? (
-          <div className="flex justify-center py-8">
-            <Spinner size="lg" />
-          </div>
+          <ListRow.Skeleton rows={3} />
         ) : portfolio.isError ? (
-          <ErrorMessage message={t('prices.loadError')} onRetry={() => void portfolio.refetch()} />
+          <div className="p-5 pt-0">
+            <ErrorMessage
+              message={t('prices.loadError')}
+              onRetry={() => void portfolio.refetch()}
+            />
+          </div>
         ) : holdings.length === 0 ? (
           <EmptyState
-            icon={<ChartIcon className="size-7" />}
+            icon={<Icon.Coins />}
             title={t('prices.noHoldingsTitle')}
             description={t('prices.noHoldingsDescription')}
             action={
-              <Link
-                to="/transactions"
-                className="touch-target inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-base font-semibold text-white hover:bg-indigo-700"
-              >
+              <Button onClick={() => void navigate('/transactions')}>
                 {t('prices.goToTransactions')}
-              </Link>
+              </Button>
             }
           />
         ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          <ListGroup className="pb-2">
             {holdings.map((holding) => (
               <PriceRow
                 key={holding.coinId}
@@ -101,45 +102,42 @@ export function PricesPage() {
                 language={settings.language}
               />
             ))}
-          </ul>
+          </ListGroup>
         )}
-      </Card>
+      </Panel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('prices.searchAnyCoin')}</CardTitle>
-        </CardHeader>
-
+      <Panel
+        title={t('prices.searchAnyCoin')}
+        className="animate-rise"
+        style={{ '--i': 2 } as React.CSSProperties}
+      >
         <div className="flex flex-col gap-4">
           <CoinPicker
             value={selectedCoin}
             onChange={handleCoinSelected}
             label={t('prices.searchLabel')}
           />
-
           {selectedCoin ? <PriceCard coin={selectedCoin} /> : null}
-
-          {watchlist.length > 0 ? (
-            <div>
-              <h3 className="mb-2 text-base font-semibold text-slate-700 dark:text-slate-300">
-                {t('prices.watchlist')}
-              </h3>
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                {watchlist.map((coin) => (
-                  <PriceRow
-                    key={coin.id}
-                    coin={coin}
-                    quote={watchlistPrices.prices[coin.id]}
-                    baseCurrency={settings.baseCurrency}
-                    language={settings.language}
-                    onRemove={() => removeFromWatchlist(coin.id)}
-                  />
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </div>
-      </Card>
+      </Panel>
+
+      {watchlist.length > 0 ? (
+        <Panel flush className="animate-rise" style={{ '--i': 3 } as React.CSSProperties}>
+          <ListGroup className="pb-2">
+            <ListLabel className="border-0 pt-5">{t('prices.watchlist')}</ListLabel>
+            {watchlist.map((coin) => (
+              <PriceRow
+                key={coin.id}
+                coin={coin}
+                quote={watchlistPrices.prices[coin.id]}
+                baseCurrency={settings.baseCurrency}
+                language={settings.language}
+                onRemove={() => removeFromWatchlist(coin.id)}
+              />
+            ))}
+          </ListGroup>
+        </Panel>
+      ) : null}
     </>
   );
 }

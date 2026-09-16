@@ -10,14 +10,21 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, actions, className }: PageHeaderProps) {
   return (
-    <header className={cn('mb-6 flex flex-wrap items-start justify-between gap-4', className)}>
+    <header
+      className={cn(
+        'animate-rise flex flex-wrap items-end justify-between gap-x-6 gap-y-4',
+        className,
+      )}
+    >
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
-        {subtitle ? (
-          <p className="mt-1 text-base text-slate-600 dark:text-slate-400">{subtitle}</p>
-        ) : null}
+        <h1 className="text-h1 text-ink">{title}</h1>
+        {subtitle ? <p className="mt-1 text-base text-ink-2">{subtitle}</p> : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
+      {actions ? (
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto [&>button:not([aria-label])]:flex-1 sm:[&>button:not([aria-label])]:flex-none">
+          {actions}
+        </div>
+      ) : null}
     </header>
   );
 }

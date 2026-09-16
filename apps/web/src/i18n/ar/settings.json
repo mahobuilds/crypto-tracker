@@ -17,9 +17,13 @@
   "alertsEnabled": "تنبيهات الأسعار",
   "alertsEnabledHint": "عند التفعيل، يمكنك إنشاء تنبيهات أسعار ترسل إشعار دفع وشريط داخل التطبيق عند تحققها.",
   "chartsTitle": "رسوم لوحة المتابعة",
-  "chartLine": "الرسم الخطي",
-  "chartPie": "الرسم الدائري",
+  "chartLine": "رسم الربح والخسارة",
+  "chartPie": "رسم التوزيع",
   "chartsShowFirst": "إظهار أولاً",
   "saveFailed": "لم يتم حفظ هذا التغيير. يرجى المحاولة مرة أخرى.",
-  "version": "الإصدار 1.0"
+  "version": "الإصدار 1.0",
+  "baseCurrencyHint": "تُعرض الأسعار والمجاميع بهذه العملة",
+  "themeSystemShort": "تلقائي",
+  "chartLineShort": "الربح/الخسارة",
+  "chartPieShort": "التوزيع"
 }

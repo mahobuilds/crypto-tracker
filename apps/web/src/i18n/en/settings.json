@@ -17,9 +17,13 @@
   "alertsEnabled": "Price alerts",
   "alertsEnabledHint": "When on, you can create price alerts that send a push notification and an in-app banner when they trigger.",
   "chartsTitle": "Dashboard charts",
-  "chartLine": "Line chart",
-  "chartPie": "Pie chart",
+  "chartLine": "Profit and loss chart",
+  "chartPie": "Allocation chart",
   "chartsShowFirst": "Show first",
   "saveFailed": "That change did not save. Please try again.",
-  "version": "v1.0"
+  "version": "v1.0",
+  "baseCurrencyHint": "Prices and totals are shown in this currency",
+  "themeSystemShort": "Auto",
+  "chartLineShort": "P/L",
+  "chartPieShort": "Allocation"
 }

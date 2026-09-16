@@ -126,3 +126,10 @@ crypto-tracker/
 ## License
 
 Private project.
+
+## Design and mock mode
+
+The visual system is documented in `docs/DESIGN.md` (tokens, typography, components, page rules).
+In development you can browse every screen without signing in or a database by opening
+`http://localhost:5173/?mock=1` (add `&lang=ar` for Arabic). `?mock=0` turns it off. The mock
+layer lives in `apps/web/src/dev/mock.ts` and is removed from production builds.

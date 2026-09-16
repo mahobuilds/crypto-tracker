@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
+import { isMockEnabled, mockUser } from '@/dev/mock';
 
 export interface SessionUser {
   id: string;
@@ -35,10 +36,12 @@ function toSessionUser(user: User): SessionUser {
 }
 
 export function useSession(): UseSessionResult {
-  const [data, setData] = useState<Session | null>(null);
-  const [isPending, setIsPending] = useState(true);
+  const mock = import.meta.env.DEV && isMockEnabled();
+  const [data, setData] = useState<Session | null>(mock ? { user: mockUser } : null);
+  const [isPending, setIsPending] = useState(!mock);
 
   useEffect(() => {
+    if (mock) return;
     let active = true;
 
     void supabase.auth.getSession().then(({ data: sessionData }) => {
@@ -58,7 +61,7 @@ export function useSession(): UseSessionResult {
       active = false;
       subscription.subscription.unsubscribe();
     };
-  }, []);
+  }, [mock]);
 
   return { data, isPending };
 }

@@ -2,7 +2,7 @@
   "title": "استيراد المعاملات",
   "subtitle": "ارفع ملف CSV أو الصق الصفوف، راجع المعاينة، ثم أكّد الاستيراد.",
   "downloadSample": "تحميل نموذج CSV",
-  "step1Title": "1. جهّز ملفك",
+  "step1Title": "جهّز ملفك",
   "columnsIntro": "الأعمدة المتوقعة:",
   "columns": {
     "date": "تاريخ ووقت الصفقة، مثل 2025-01-15 أو 2025-01-15T09:30:00Z.",
@@ -11,7 +11,7 @@
     "quantity": "الكمية المتداولة، أكبر من 0.",
     "price": "سعر الوحدة، بعملة المعاملة.",
     "currency": "USD أو EUR أو SAR أو TRY. اختياري، الافتراضي هو عملتك الأساسية.",
-    "fee": "الرسوم المدفوعة إن وجدت. اختياري، الافتراضي 0.",
+    "fee": "يُتجاهل. تُحسب الرسوم تلقائيًا دائمًا بنسبة 0.1%.",
     "note": "ملاحظة نصية حرة. اختياري."
   },
   "dropzoneTitle": "اختر ملف CSV",
@@ -25,28 +25,49 @@
     "empty": "اختر ملف CSV أو الصق نص CSV أولاً.",
     "tooLarge": "حجم الملف أكبر من 1 ميغابايت. قسّمه إلى ملفات أصغر وحاول مرة أخرى."
   },
-  "step2Title": "2. المراجعة",
-  "summary": "{{valid}} صف صالح، {{errors}} صف به أخطاء",
+  "step2Title": "المراجعة",
   "table": {
-    "line": "#",
-    "date": "التاريخ",
-    "type": "النوع",
-    "coin": "العملة",
-    "quantity": "الكمية",
-    "price": "السعر",
-    "currency": "العملة النقدية",
     "fee": "الرسوم",
-    "note": "ملاحظة",
-    "errorsHeading": "الأخطاء",
-    "ok": "سليم"
+    "invalidRow": "لا يمكن استيراد هذا الصف",
+    "lineNumber": "السطر {{line}}"
   },
   "types": {
     "buy": "شراء",
     "sell": "بيع"
   },
   "fixErrorsHint": "صحّح الأخطاء في ملفك، ثم ارفعه مرة أخرى للاستيراد.",
-  "commitButton": "استيراد {{count}} معاملة",
   "successTitle": "اكتمل الاستيراد",
-  "successMessage": "تم استيراد {{count}} معاملة.",
-  "viewTransactions": "عرض المعاملات"
+  "viewTransactions": "عرض المعاملات",
+  "stepOf": "الخطوة {{step}} من {{total}}",
+  "stepName": {
+    "1": "التحضير",
+    "2": "المراجعة",
+    "3": "تم"
+  },
+  "pasteInstead": "لصق الصفوف بدلًا من ذلك",
+  "validCount_zero": "لا صفوف صالحة",
+  "validCount_one": "صف واحد صالح",
+  "validCount_two": "صفان صالحان",
+  "validCount_few": "{{count}} صفوف صالحة",
+  "validCount_many": "{{count}} صفًا صالحًا",
+  "validCount_other": "{{count}} صف صالح",
+  "errorCount_zero": "لا أخطاء",
+  "errorCount_one": "صف واحد يحتاج مراجعة",
+  "errorCount_two": "صفان يحتاجان مراجعة",
+  "errorCount_few": "{{count}} صفوف تحتاج مراجعة",
+  "errorCount_many": "{{count}} صفًا يحتاج مراجعة",
+  "errorCount_other": "{{count}} صف يحتاج مراجعة",
+  "commitButton_zero": "لا شيء للاستيراد",
+  "commitButton_one": "استيراد معاملة واحدة",
+  "commitButton_two": "استيراد معاملتين",
+  "commitButton_few": "استيراد {{count}} معاملات",
+  "commitButton_many": "استيراد {{count}} معاملة",
+  "commitButton_other": "استيراد {{count}} معاملة",
+  "successMessage_zero": "لم تُستورد أي معاملة.",
+  "successMessage_one": "تم استيراد معاملة واحدة.",
+  "successMessage_two": "تم استيراد معاملتين.",
+  "successMessage_few": "تم استيراد {{count}} معاملات.",
+  "successMessage_many": "تم استيراد {{count}} معاملة.",
+  "successMessage_other": "تم استيراد {{count}} معاملة.",
+  "importMore": "استيراد ملف آخر"
 }

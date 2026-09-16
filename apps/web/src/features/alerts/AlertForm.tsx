@@ -1,13 +1,21 @@
 import { useEffect, useState } from 'react';
-import type { FormEvent, ReactNode } from 'react';
+import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { alertInputSchema } from '@crypto-tracker/shared';
 import type { Alert, AlertDirection, CoinSearchResult } from '@crypto-tracker/shared';
 import { CoinPicker } from '@/components/CoinPicker';
-import { Button, Dialog, ErrorMessage, Field, Input } from '@/components/ui';
+import {
+  Button,
+  Dialog,
+  ErrorMessage,
+  Field,
+  Input,
+  SegmentedControl,
+  useToast,
+} from '@/components/ui';
+import { Icon } from '@/components/icons';
 import { usePrices } from '@/hooks/usePrices';
 import { ApiRequestError } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { useCreateAlert, useUpdateAlert } from './queries';
 
 export interface AlertFormProps {
@@ -23,33 +31,10 @@ function alertToCoin(alert: Alert): CoinSearchResult {
   return { id: alert.coinId, symbol: alert.coinSymbol, name: alert.coinName, thumb: null };
 }
 
-interface DirectionOptionProps {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}
-
-function DirectionOption({ active, onClick, children }: DirectionOptionProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        'touch-target rounded-xl border px-4 py-2.5 text-base font-semibold transition-colors',
-        active
-          ? 'border-indigo-600 bg-indigo-600 text-white'
-          : 'border-slate-300 bg-white text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function AlertForm({ open, onClose, alert }: AlertFormProps) {
   const { t } = useTranslation();
   const isEdit = Boolean(alert);
+  const toast = useToast();
   const createAlert = useCreateAlert();
   const updateAlert = useUpdateAlert();
 
@@ -113,6 +98,7 @@ export function AlertForm({ open, onClose, alert }: AlertFormProps) {
       } else {
         await createAlert.mutateAsync(result.data);
       }
+      toast.success(t(alert ? 'alerts.toast.updated' : 'alerts.toast.saved'));
       onClose();
     } catch (error) {
       setFormError(error instanceof ApiRequestError ? error.message : t('errors.generic'));
@@ -126,11 +112,17 @@ export function AlertForm({ open, onClose, alert }: AlertFormProps) {
       title={isEdit ? t('alerts.form.editTitle') : t('alerts.form.createTitle')}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" size="lg" onClick={onClose}>
             {t('common.cancel')}
           </Button>
-          <Button type="submit" form="alert-form" loading={isSaving}>
-            {t('common.save')}
+          <Button
+            type="submit"
+            form="alert-form"
+            size="lg"
+            loading={isSaving}
+            trailingIcon={<Icon.Check size={16} weight="bold" />}
+          >
+            {t('alerts.form.save')}
           </Button>
         </>
       }
@@ -143,17 +135,27 @@ export function AlertForm({ open, onClose, alert }: AlertFormProps) {
         {formError ? <ErrorMessage message={formError} /> : null}
         <CoinPicker value={coin} onChange={setCoin} label={t('alerts.form.coin')} />
         <div className="flex flex-col gap-1.5">
-          <span className="text-base font-medium text-slate-800 dark:text-slate-200">
-            {t('alerts.form.direction')}
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            <DirectionOption active={direction === 'above'} onClick={() => setDirection('above')}>
-              {t('alerts.form.goesAbove')}
-            </DirectionOption>
-            <DirectionOption active={direction === 'below'} onClick={() => setDirection('below')}>
-              {t('alerts.form.goesBelow')}
-            </DirectionOption>
-          </div>
+          <span className="text-label text-ink-2">{t('alerts.form.direction')}</span>
+          <SegmentedControl
+            fullWidth
+            label={t('alerts.form.direction')}
+            value={direction}
+            onChange={setDirection}
+            options={[
+              {
+                value: 'above',
+                label: t('alerts.form.goesAbove'),
+                icon: <Icon.ArrowUpRight weight="bold" />,
+                tone: 'gain',
+              },
+              {
+                value: 'below',
+                label: t('alerts.form.goesBelow'),
+                icon: <Icon.ArrowDownRight weight="bold" />,
+                tone: 'loss',
+              },
+            ]}
+          />
         </div>
         <Field htmlFor={TARGET_PRICE_ID} label={t('alerts.form.targetPrice')} error={priceError}>
           <Input
@@ -165,16 +167,24 @@ export function AlertForm({ open, onClose, alert }: AlertFormProps) {
           />
         </Field>
         {currentPriceUsd !== null ? (
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" onClick={() => applyQuickFill('current')}>
-              {t('alerts.form.useCurrentPrice')}
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => applyQuickFill('up')}>
-              {t('alerts.form.plus5')}
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => applyQuickFill('down')}>
-              {t('alerts.form.minus5')}
-            </Button>
+          <div className="-mt-1 flex flex-wrap gap-2">
+            {(['current', 'up', 'down'] as const).map((kind) => (
+              <Button
+                key={kind}
+                type="button"
+                variant="secondary"
+                className="h-9 px-3.5 text-sm"
+                onClick={() => applyQuickFill(kind)}
+              >
+                {t(
+                  kind === 'current'
+                    ? 'alerts.form.useCurrentPrice'
+                    : kind === 'up'
+                      ? 'alerts.form.plus5'
+                      : 'alerts.form.minus5',
+                )}
+              </Button>
+            ))}
           </div>
         ) : null}
       </form>

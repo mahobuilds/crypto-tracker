@@ -1,5 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import {
+  calculateFee,
   CURRENCIES,
   TRANSACTION_TYPES,
   applyChange,
@@ -109,6 +110,11 @@ export async function listTransactions(
   });
 }
 
+/** The fee is never taken from the client: it is always 0.1% of quantity x price. */
+export function withCalculatedFee(input: TransactionInput): TransactionInput {
+  return { ...input, fee: calculateFee(input.quantity, input.pricePerUnit) };
+}
+
 /** Converts an entered price and fee to USD using the current FX rates. */
 export function normalizeUsd(
   input: TransactionInput,
@@ -175,9 +181,10 @@ export function inputToRow(
 export async function createTransaction(
   db: Database,
   userId: string,
-  input: TransactionInput,
+  rawInput: TransactionInput,
   fx: FxRates,
 ): Promise<Transaction> {
+  const input = withCalculatedFee(rawInput);
   const existingRows = await listTransactions(db, userId);
   const existing = existingRows.map(toTransactionLike);
   const usd = normalizeUsd(input, fx);
@@ -200,9 +207,10 @@ export async function updateTransaction(
   db: Database,
   userId: string,
   id: string,
-  input: TransactionInput,
+  rawInput: TransactionInput,
   fx: FxRates,
 ): Promise<Transaction> {
+  const input = withCalculatedFee(rawInput);
   const existingRows = await listTransactions(db, userId);
   const current = existingRows.find((row) => row.id === id);
   if (!current) {

@@ -66,7 +66,7 @@ The app must be easy to use on both a phone and a laptop, support English and Ar
 - Quantity
 - Price per unit (in the transaction currency)
 - Total value (auto-calculated: quantity × price, editable)
-- Fee (optional, default 0)
+- Fee (calculated automatically at 0.1% of quantity x price; not entered by the user)
 - Date and time
 - Note (optional free text)
 
@@ -120,7 +120,8 @@ The app must be easy to use on both a phone and a laptop, support English and Ar
 
 ### 6.7 Profit / Loss Calculation
 
-- Method: **average cost**.
+- Primary method: **average cost** (used in every total).
+- The dashboard also shows the realized and unrealized P/L under **FIFO** (first in, first out: each sale consumes the oldest purchases first) side by side with the average-cost figures, so the user can compare both.
 - For each coin, average cost = total spent on buys (including fees) ÷ total quantity bought.
 - Selling reduces quantity held but does not change the average cost of the remainder.
 - Unrealized P/L = (current price − average cost) × quantity held.

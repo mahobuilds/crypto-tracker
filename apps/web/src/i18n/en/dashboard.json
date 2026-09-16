@@ -1,19 +1,21 @@
 {
   "title": "Dashboard",
   "lastUpdated": "Prices updated {{time}}",
-  "pricesUnavailable": "Prices unavailable",
+  "pricesUnavailable": "Prices unavailable right now",
   "totalValue": "Total value",
   "invested": "Invested",
   "unrealizedPnl": "Unrealized P/L",
-  "realizedPnl": "Realized P/L: {{value}}",
+  "realizedPnlLabel": "Realized P/L",
+  "realizedHint": "From completed sales",
+  "allTime": "all time",
+  "holdingsCount_one": "{{count}} coin",
+  "holdingsCount_other": "{{count}} coins",
   "empty": {
     "title": "No holdings yet",
-    "description": "Add your first transaction to see your portfolio here.",
+    "description": "Add your first transaction and your portfolio appears here.",
     "action": "Add a transaction"
   },
   "chart": {
-    "value": "Portfolio value",
-    "investedLine": "Invested",
     "rangeLabel": "Chart range",
     "range": {
       "24h": "24h",
@@ -22,12 +24,33 @@
       "90d": "90d",
       "1y": "1y",
       "all": "All"
+    }
+  },
+  "pnl": {
+    "title": "Profit and loss",
+    "subtitle": "Unrealized gain or loss over time, from hourly snapshots",
+    "modeLabel": "Show as money or percent",
+    "modeMoney": "{{currency}}",
+    "rangeTitle": {
+      "24h": "Last 24 hours",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "1y": "Last year",
+      "all": "All time"
     },
-    "notEnoughHistory": "Not enough history yet; snapshots are taken hourly"
+    "sinceStart": "{{change}} since {{date}}",
+    "showTable": "Show table",
+    "hideTable": "Hide table",
+    "notEnoughHistory": "Your profit and loss line starts after the first hourly snapshot. Check back in an hour."
   },
   "allocation": {
     "title": "Allocation",
     "other": "Other",
+    "otherCount_one": "{{count}} more coin",
+    "otherCount_other": "{{count}} more coins",
+    "coins_one": "{{count}} coin",
+    "coins_other": "{{count}} coins",
     "summary": "Allocation by coin: {{summary}}"
   },
   "holdings": {
@@ -35,6 +58,7 @@
     "coin": "Coin",
     "quantity": "Quantity",
     "avgCost": "Avg. cost",
+    "avgShort": "avg",
     "price": "Price",
     "value": "Value",
     "pnl": "P/L",
@@ -42,14 +66,33 @@
     "noPrice": "No price"
   },
   "settingsButton": {
-    "label": "Charts",
     "title": "Chart settings",
-    "lineChart": "Line chart",
-    "lineChartDescription": "Show portfolio value over time",
-    "pieChart": "Pie chart",
-    "pieChartDescription": "Show allocation by coin",
-    "order": "Order",
-    "moveUp": "Move up",
-    "moveDown": "Move down"
+    "lineChart": "Profit and loss chart",
+    "lineChartDescription": "Show your gain or loss over time",
+    "pieChart": "Allocation chart",
+    "pieChartDescription": "Show how your coins are split",
+    "order": "Show first",
+    "lineShort": "P/L",
+    "pieShort": "Allocation"
+  },
+  "methods": {
+    "title": "Realized profit and loss",
+    "subtitle": "The same sales valued two ways. Average cost is used everywhere else in the app.",
+    "default": "Used in totals",
+    "realized": "Realized P/L",
+    "unrealized": "Unrealized P/L",
+    "costBasis": "Cost of what you still hold",
+    "average": {
+      "title": "Average cost",
+      "description": "Each sale is measured against the average price you paid for that coin."
+    },
+    "fifo": {
+      "title": "FIFO",
+      "description": "Each sale uses your oldest purchases first (first in, first out)."
+    }
+  },
+  "methodTag": {
+    "average": "Avg. cost",
+    "fifo": "FIFO"
   }
 }

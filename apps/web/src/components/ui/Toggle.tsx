@@ -10,10 +10,12 @@ export interface ToggleProps {
   disabled?: boolean;
   className?: string;
   id?: string;
+  /** Render only the switch; the label becomes its accessible name. */
+  hideLabel?: boolean;
 }
 
 export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(function Toggle(
-  { checked, onChange, label, description, disabled = false, className, id },
+  { checked, onChange, label, description, disabled = false, className, id, hideLabel = false },
   ref,
 ) {
   const generatedId = useId();
@@ -21,13 +23,13 @@ export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(function Toggle
   const labelId = `${baseId}-label`;
   const descriptionId = `${baseId}-description`;
   return (
-    <div className={cn('flex items-center justify-between gap-4', className)}>
-      <span className="flex min-w-0 flex-col">
-        <span id={labelId} className="text-base font-medium">
+    <div className={cn('flex min-h-12 items-center justify-between gap-4', className)}>
+      <span className={cn('flex min-w-0 flex-col', hideLabel && 'sr-only')}>
+        <span id={labelId} className="text-base font-medium text-ink">
           {label}
         </span>
         {description ? (
-          <span id={descriptionId} className="text-sm text-slate-600 dark:text-slate-400">
+          <span id={descriptionId} className="text-caption text-ink-2">
             {description}
           </span>
         ) : null}
@@ -43,15 +45,15 @@ export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(function Toggle
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={cn(
-          'touch-target relative inline-flex w-16 shrink-0 items-center rounded-full border-2 border-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-60',
-          checked ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700',
+          'relative inline-flex h-8 w-13 shrink-0 items-center rounded-full p-0.5 transition-colors duration-220 ease-out disabled:cursor-not-allowed disabled:opacity-50',
+          checked ? 'bg-accent' : 'bg-line hover:bg-ink-3/40 dark:bg-line dark:hover:bg-ink-3/50',
         )}
       >
         <span
           aria-hidden="true"
           className={cn(
-            'pointer-events-none inline-block size-8 rounded-full bg-white shadow transition-transform',
-            checked ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-0.5 rtl:-translate-x-0.5',
+            'pointer-events-none inline-block size-7 rounded-full bg-surface shadow-[0_1px_2px_rgb(27_28_31_/_0.2)] transition-transform duration-220 ease-out',
+            checked ? 'translate-x-5 rtl:-translate-x-5' : 'translate-x-0',
           )}
         />
       </button>

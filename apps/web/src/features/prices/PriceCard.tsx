@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { CoinSearchResult } from '@crypto-tracker/shared';
-import { CoinIcon } from '@/components/icons';
-import { Badge, Card, PnlText, Spinner } from '@/components/ui';
+import { Avatar, Badge, PnlText, Skeleton } from '@/components/ui';
 import { formatFiat, formatPct, formatRelative } from '@/lib/format';
 import { useSettings } from '@/app/settings/SettingsProvider';
 import { usePrices } from '@/hooks/usePrices';
@@ -11,6 +10,7 @@ export interface PriceCardProps {
   coin: CoinSearchResult;
 }
 
+/** Big price block for the coin picked in the search panel. */
 export function PriceCard({ coin }: PriceCardProps) {
   const { t } = useTranslation();
   const { settings } = useSettings();
@@ -20,48 +20,36 @@ export function PriceCard({ coin }: PriceCardProps) {
   const price = quote ? quote[CURRENCY_QUOTE_FIELD[settings.baseCurrency]] : null;
 
   return (
-    <Card className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        {coin.thumb ? (
-          <img src={coin.thumb} alt="" className="size-12 shrink-0 rounded-full" />
-        ) : (
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-slate-800 dark:text-indigo-300">
-            <CoinIcon className="size-6" />
-          </span>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-semibold">{coin.name}</p>
-          <p className="text-sm text-slate-600 uppercase dark:text-slate-400">{coin.symbol}</p>
-        </div>
+    <div className="animate-rise flex items-center gap-4 rounded-[var(--r-md)] bg-surface-2 p-4">
+      <Avatar label={coin.symbol} src={coin.thumb} size="lg" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[1.0625rem] font-semibold">{coin.name}</p>
+        <p className="text-caption text-ink-2 uppercase">{coin.symbol}</p>
+        {updatedAt ? (
+          <p className="text-caption mt-0.5 text-ink-3">
+            {t('prices.updated', { time: formatRelative(updatedAt, language) })}
+          </p>
+        ) : null}
       </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-2">
-          <Spinner size="md" />
-        </div>
-      ) : price === null || price === undefined ? (
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-slate-500 dark:text-slate-400">
-            {t('prices.emDash')}
-          </span>
-          <Badge tone="neutral">{t('prices.noPrice')}</Badge>
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-baseline gap-3">
-          <span className="text-2xl font-bold">
-            {formatFiat(price, settings.baseCurrency, language)}
-          </span>
-          <PnlText value={quote?.change24hPct ?? 0} className="text-lg">
-            {formatPct(quote?.change24hPct ?? 0, language)}
-          </PnlText>
-        </div>
-      )}
-
-      {updatedAt ? (
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          {t('prices.updated', { time: formatRelative(updatedAt, language) })}
-        </p>
-      ) : null}
-    </Card>
+      <div className="flex flex-col items-end gap-1">
+        {isLoading ? (
+          <>
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-3.5 w-14" />
+          </>
+        ) : price === null || price === undefined ? (
+          <Badge>{t('prices.noPrice')}</Badge>
+        ) : (
+          <>
+            <span className="tabular text-[1.375rem] leading-none font-semibold">
+              {formatFiat(price, settings.baseCurrency, language)}
+            </span>
+            <PnlText value={quote?.change24hPct ?? 0} iconSize={14}>
+              {formatPct(quote?.change24hPct ?? 0, language)}
+            </PnlText>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

@@ -3,8 +3,8 @@ import type { KeyboardEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { CoinSearchResponse, CoinSearchResult } from '@crypto-tracker/shared';
-import { CloseIcon, CoinIcon, SearchIcon } from '@/components/icons';
-import { Field, Input, Spinner } from '@/components/ui';
+import { Icon } from '@/components/icons';
+import { Avatar, Field, IconButton, Input, Spinner } from '@/components/ui';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { apiFetch } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -21,15 +21,8 @@ const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 300;
 const EMPTY_RESULTS: CoinSearchResult[] = [];
 
-function CoinThumb({ coin }: { coin: CoinSearchResult }) {
-  if (coin.thumb) {
-    return <img src={coin.thumb} alt="" className="size-8 shrink-0 rounded-full" />;
-  }
-  return (
-    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-slate-800 dark:text-indigo-300">
-      <CoinIcon className="size-5" />
-    </span>
-  );
+function CoinThumb({ coin, size = 'sm' }: { coin: CoinSearchResult; size?: 'sm' | 'md' }) {
+  return <Avatar label={coin.symbol} src={coin.thumb} size={size} />;
 }
 
 export function CoinPicker({ value, onChange, label, autoFocus = false }: CoinPickerProps) {
@@ -104,23 +97,15 @@ export function CoinPicker({ value, onChange, label, autoFocus = false }: CoinPi
   if (value) {
     return (
       <Field htmlFor={`${inputId}-clear`} label={fieldLabel}>
-        <div className="touch-target flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
-          <CoinThumb coin={value} />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-base font-semibold">{value.name}</span>
-            <span className="block text-sm text-slate-600 uppercase dark:text-slate-400">
-              {value.symbol}
-            </span>
+        <div className="flex min-h-12 items-center gap-3 rounded-[var(--r-sm)] bg-surface-2 py-1.5 ps-2 pe-1 ring-1 ring-black/5 dark:ring-white/8">
+          <CoinThumb coin={value} size="md" />
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="block truncate text-[0.9375rem] font-semibold">{value.name}</span>
+            <span className="text-caption block text-ink-2 uppercase">{value.symbol}</span>
           </span>
-          <button
-            id={`${inputId}-clear`}
-            type="button"
-            onClick={clear}
-            aria-label={t('common.clear')}
-            className="touch-target inline-flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700"
-          >
-            <CloseIcon className="size-5" />
-          </button>
+          <IconButton id={`${inputId}-clear`} onClick={clear} aria-label={t('common.clear')}>
+            <Icon.X />
+          </IconButton>
         </div>
       </Field>
     );
@@ -129,7 +114,7 @@ export function CoinPicker({ value, onChange, label, autoFocus = false }: CoinPi
   return (
     <Field htmlFor={inputId} label={fieldLabel} hint={t('common.searchMinChars')}>
       <div className="relative">
-        <SearchIcon className="pointer-events-none absolute start-4 top-1/2 size-5 -translate-y-1/2 text-slate-500" />
+        <Icon.MagnifyingGlass className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-3" />
         <Input
           ref={inputRef}
           id={inputId}
@@ -158,14 +143,14 @@ export function CoinPicker({ value, onChange, label, autoFocus = false }: CoinPi
           <ul
             id={listId}
             role="listbox"
-            className="absolute inset-x-0 top-full z-30 mt-2 max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+            className="animate-fade absolute inset-x-0 top-full z-30 mt-2 max-h-72 overflow-y-auto rounded-[var(--r-md)] bg-surface p-1.5 shadow-panel ring-1 ring-black/5 dark:ring-white/8"
           >
             {isSearching ? (
               <li className="flex items-center justify-center px-4 py-4">
                 <Spinner size="sm" />
               </li>
             ) : results.length === 0 ? (
-              <li className="px-4 py-4 text-center text-base text-slate-600 dark:text-slate-400">
+              <li className="px-4 py-4 text-center text-base text-ink-2">
                 {t('common.noResults')}
               </li>
             ) : (
@@ -179,18 +164,14 @@ export function CoinPicker({ value, onChange, label, autoFocus = false }: CoinPi
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => select(coin)}
                   className={cn(
-                    'touch-target flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2',
-                    index === activeIndex
-                      ? 'bg-indigo-50 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200'
-                      : 'hover:bg-slate-100 dark:hover:bg-slate-800',
+                    'flex min-h-12 cursor-pointer items-center gap-3 rounded-[var(--r-sm)] px-3 py-2 transition-colors duration-150',
+                    index === activeIndex ? 'bg-accent-soft text-ink' : 'hover:bg-surface-2',
                   )}
                 >
                   <CoinThumb coin={coin} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-base font-medium">{coin.name}</span>
-                    <span className="block text-sm text-slate-600 uppercase dark:text-slate-400">
-                      {coin.symbol}
-                    </span>
+                    <span className="block truncate text-[0.9375rem] font-medium">{coin.name}</span>
+                    <span className="text-caption block text-ink-2 uppercase">{coin.symbol}</span>
                   </span>
                 </li>
               ))

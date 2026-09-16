@@ -5,3 +5,4 @@ pnpm-lock.yaml
 worker-configuration.d.ts
 apps/api/drizzle/meta
 docs/**/*.md
+.playwright-cli

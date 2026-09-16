@@ -25,7 +25,8 @@
   },
   "actions": {
     "edit": "Edit transaction",
-    "delete": "Delete transaction"
+    "delete": "Delete transaction",
+    "more": "More actions"
   },
   "empty": {
     "title": "No transactions yet",
@@ -43,7 +44,6 @@
     "pricePerUnit": "Price per unit",
     "currency": "Currency",
     "total": "Total",
-    "fee": "Fee",
     "date": "Date and time",
     "note": "Note",
     "errors": {
@@ -51,13 +51,23 @@
       "quantity": "Enter a quantity greater than zero",
       "pricePerUnit": "Enter a price of zero or more",
       "currency": "Choose a currency",
-      "fee": "Enter a fee of zero or more",
       "date": "Enter a valid date and time",
       "note": "Note is too long"
-    }
+    },
+    "save": "Save transaction",
+    "feeAuto": "Fee ({{rate}}, added automatically)"
   },
   "delete": {
     "title": "Delete transaction?",
     "confirm": "This will delete the transaction of {{quantity}} {{coin}} on {{date}}. This cannot be undone."
+  },
+  "count_one": "{{count}} transaction",
+  "count_other": "{{count}} transactions",
+  "import": "Import CSV",
+  "at": "at",
+  "toast": {
+    "saved": "Transaction saved",
+    "updated": "Transaction updated",
+    "deleted": "Transaction deleted"
   }
 }

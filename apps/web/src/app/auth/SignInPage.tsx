@@ -1,18 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LANGUAGES } from '@crypto-tracker/shared';
 import type { Language } from '@crypto-tracker/shared';
-import { GoogleIcon } from '@/components/icons';
-import { Button, Card, ErrorMessage } from '@/components/ui';
+import { Icon } from '@/components/icons';
+import { Button, ErrorMessage, Panel, SegmentedControl } from '@/components/ui';
 import { applyLanguage, isLanguage } from '@/i18n';
-import { cn } from '@/lib/cn';
 import { storeLanguage } from '@/lib/language-storage';
 import { signInWithGoogle } from './client';
-
-const LANGUAGE_LABEL_KEYS: Record<Language, string> = {
-  en: 'common.english',
-  ar: 'common.arabic',
-};
 
 export function SignInPage() {
   const { t, i18n } = useTranslation();
@@ -39,45 +32,41 @@ export function SignInPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 py-8 dark:bg-slate-950">
-      <Card className="flex w-full max-w-md flex-col items-center gap-6 p-8 text-center">
-        <img src="/icons/icon.svg" alt="" width={80} height={80} className="size-20 rounded-2xl" />
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight">{t('auth.title')}</h1>
-          <p className="text-base text-slate-600 dark:text-slate-400">{t('auth.subtitle')}</p>
+    <main className="flex min-h-dvh items-center justify-center bg-bg px-4 py-8">
+      <Panel
+        className="animate-rise w-full max-w-[26rem]"
+        contentClassName="flex flex-col items-center gap-5 py-4 text-center"
+      >
+        <span className="flex size-16 items-center justify-center rounded-[20px] bg-accent text-accent-ink">
+          <Icon.ChartLineUp weight="fill" size={32} />
+        </span>
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-display">{t('auth.title')}</h1>
+          <p className="text-base text-ink-2">{t('auth.subtitle')}</p>
         </div>
-        <Button size="lg" fullWidth loading={submitting} onClick={() => void handleSignIn()}>
-          <GoogleIcon className="size-6 shrink-0 rounded-full bg-white p-0.5" />
+        <Button
+          variant="secondary"
+          size="lg"
+          fullWidth
+          loading={submitting}
+          onClick={() => void handleSignIn()}
+          className="mt-1"
+        >
+          <Icon.Google size={22} />
           {t('auth.continueWithGoogle')}
         </Button>
         {failed ? <ErrorMessage className="w-full" message={t('auth.signInFailed')} /> : null}
-        <div
-          role="group"
-          aria-label={t('common.language')}
-          className="flex w-full justify-center gap-2 border-t border-slate-200 pt-6 dark:border-slate-800"
-        >
-          {LANGUAGES.map((language) => {
-            const active = language === currentLanguage;
-            return (
-              <button
-                key={language}
-                type="button"
-                lang={language}
-                aria-pressed={active}
-                onClick={() => chooseLanguage(language)}
-                className={cn(
-                  'touch-target rounded-xl px-4 py-2 text-base font-medium transition-colors',
-                  active
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
-                )}
-              >
-                {t(LANGUAGE_LABEL_KEYS[language], { lng: language })}
-              </button>
-            );
-          })}
-        </div>
-      </Card>
+        <SegmentedControl
+          size="sm"
+          label={t('common.language')}
+          value={currentLanguage}
+          onChange={chooseLanguage}
+          options={[
+            { value: 'en', label: <span lang="en">{t('common.english', { lng: 'en' })}</span> },
+            { value: 'ar', label: <span lang="ar">{t('common.arabic', { lng: 'ar' })}</span> },
+          ]}
+        />
+      </Panel>
     </main>
   );
 }

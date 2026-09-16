@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { useNavigate } from 'react-router';
 import {
   CSV_COLUMNS,
   parseTransactionsCsv,
@@ -10,29 +10,23 @@ import {
   type ImportResponse,
 } from '@crypto-tracker/shared';
 import { useSettings } from '@/app/settings/SettingsProvider';
-import { UploadIcon } from '@/components/icons';
+import { Icon } from '@/components/icons';
 import {
+  Badge,
   Button,
-  Card,
-  CardHeader,
-  CardTitle,
+  EmptyState,
   ErrorMessage,
   Field,
   PageHeader,
+  Panel,
   Textarea,
+  useToast,
 } from '@/components/ui';
 import { ApiRequestError, apiFetch } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { queryClient } from '@/lib/query';
 import { PreviewTable } from './PreviewTable';
 
 const MAX_BYTES = 1024 * 1024;
-
-const SECONDARY_LINK_CLASSES =
-  'touch-target inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-base font-semibold text-slate-900 transition-colors hover:bg-slate-50 active:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800';
-
-const PRIMARY_LINK_CLASSES =
-  'touch-target inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-base font-semibold text-white transition-colors hover:bg-indigo-700';
 
 function byteLength(text: string): number {
   return new TextEncoder().encode(text).length;
@@ -45,10 +39,13 @@ function errorMessage(error: unknown, fallback: string): string {
 export function ImportPage() {
   const { t } = useTranslation();
   const { settings } = useSettings();
+  const navigate = useNavigate();
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [pastedText, setPastedText] = useState('');
+  const [showPaste, setShowPaste] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [csvText, setCsvText] = useState('');
   const [previewResult, setPreviewResult] = useState<ImportResponse | null>(null);
@@ -74,6 +71,7 @@ export function ImportPage() {
       }),
     onSuccess: (data) => {
       setCommittedResult(data);
+      toast.success(t('import.successMessage', { count: data.importedCount }));
       void queryClient.invalidateQueries({ queryKey: ['transactions'] });
       void queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
@@ -82,9 +80,7 @@ export function ImportPage() {
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null;
     setFile(selected);
-    if (selected) {
-      setPastedText('');
-    }
+    if (selected) setPastedText('');
     setLocalError(null);
   }
 
@@ -92,9 +88,7 @@ export function ImportPage() {
     setPastedText(event.target.value);
     if (event.target.value !== '') {
       setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
     setLocalError(null);
   }
@@ -102,9 +96,8 @@ export function ImportPage() {
   function handleStartOver() {
     setFile(null);
     setPastedText('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    setShowPaste(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setLocalError(null);
     setCsvText('');
     setPreviewResult(null);
@@ -120,35 +113,24 @@ export function ImportPage() {
 
     let text: string;
     if (file) {
-      if (file.size > MAX_BYTES) {
-        setLocalError(t('import.errors.tooLarge'));
-        return;
-      }
+      if (file.size > MAX_BYTES) return setLocalError(t('import.errors.tooLarge'));
       text = await file.text();
     } else {
       text = pastedText;
     }
 
-    if (text.trim() === '') {
-      setLocalError(t('import.errors.empty'));
-      return;
-    }
-
-    if (byteLength(text) > MAX_BYTES) {
-      setLocalError(t('import.errors.tooLarge'));
-      return;
-    }
+    if (text.trim() === '') return setLocalError(t('import.errors.empty'));
+    if (byteLength(text) > MAX_BYTES) return setLocalError(t('import.errors.tooLarge'));
 
     const localResult = parseTransactionsCsv(text, { defaultCurrency: settings.baseCurrency });
     if (localResult.headerErrors.length > 0) {
-      setLocalError(localResult.headerErrors.join('; '));
-      return;
+      return setLocalError(localResult.headerErrors.join('; '));
     }
-
     previewMutation.mutate(text);
   }
 
   const hasSource = file !== null || pastedText.trim() !== '';
+  const step = committedResult ? 3 : previewResult ? 2 : 1;
 
   return (
     <>
@@ -156,142 +138,166 @@ export function ImportPage() {
         title={t('import.title')}
         subtitle={t('import.subtitle')}
         actions={
-          <a href="/sample-transactions.csv" download className={SECONDARY_LINK_CLASSES}>
+          <Button
+            variant="secondary"
+            onClick={() => window.open('/sample-transactions.csv', '_blank')}
+          >
+            <Icon.FileCsv />
             {t('import.downloadSample')}
-          </a>
+          </Button>
         }
       />
 
-      {!committedResult ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('import.step1Title')}</CardTitle>
-          </CardHeader>
+      <p className="text-caption -mt-3 text-ink-3">
+        {t('import.stepOf', { step, total: 3 })} {'·'} {t(`import.stepName.${step}`)}
+      </p>
 
-          <p className="text-base font-medium text-slate-800 dark:text-slate-200">
-            {t('import.columnsIntro')}
-          </p>
-          <ul className="mt-2 flex flex-col gap-1 text-sm text-slate-600 dark:text-slate-400">
-            {CSV_COLUMNS.map((column) => (
-              <li key={column}>
-                <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
-                  {column}
-                </span>{' '}
-                — {t(`import.columns.${column}`)}
-              </li>
-            ))}
-          </ul>
+      {step === 1 ? (
+        <Panel title={t('import.step1Title')} className="animate-rise">
+          <div className="flex flex-col gap-5">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[0.9375rem]">
+              {CSV_COLUMNS.map((column) => (
+                <Fragment key={column}>
+                  <dt className="font-mono font-semibold text-ink">{column}</dt>
+                  <dd className="text-ink-2">{t(`import.columns.${column}`)}</dd>
+                </Fragment>
+              ))}
+            </dl>
 
-          <label
-            htmlFor="import-file"
-            className="touch-target mt-5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-          >
-            <UploadIcon className="size-8 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-base font-semibold">{t('import.dropzoneTitle')}</span>
-            <span className="text-sm text-slate-600 dark:text-slate-400">
-              {file ? t('import.dropzoneSelected', { name: file.name }) : t('import.dropzoneHint')}
-            </span>
-            <input
-              ref={fileInputRef}
-              id="import-file"
-              type="file"
-              accept=".csv,text/csv"
-              className="sr-only"
-              onChange={handleFileChange}
-            />
-          </label>
-
-          <Field htmlFor="import-paste" label={t('import.pasteLabel')} className="mt-5">
-            <Textarea
-              id="import-paste"
-              value={pastedText}
-              onChange={handlePasteChange}
-              rows={6}
-              placeholder={t('import.pastePlaceholder')}
-            />
-          </Field>
-
-          {localError ? <ErrorMessage className="mt-4" message={localError} /> : null}
-          {previewMutation.isError ? (
-            <ErrorMessage
-              className="mt-4"
-              message={errorMessage(previewMutation.error, t('errors.generic'))}
-              onRetry={handlePreview}
-            />
-          ) : null}
-
-          <Button
-            className="mt-5"
-            onClick={handlePreview}
-            loading={previewMutation.isPending}
-            disabled={!hasSource || previewMutation.isPending}
-          >
-            {t('import.previewButton')}
-          </Button>
-        </Card>
-      ) : null}
-
-      {previewResult && !committedResult ? (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>{t('import.step2Title')}</CardTitle>
-          </CardHeader>
-          <p className="text-base text-slate-600 dark:text-slate-400">
-            {t('import.summary', {
-              valid: previewResult.validCount,
-              errors: previewResult.errorCount,
-            })}
-          </p>
-
-          <div className="mt-4">
-            <PreviewTable rows={previewResult.rows} language={settings.language} />
-          </div>
-
-          {commitMutation.isError ? (
-            <ErrorMessage
-              className="mt-4"
-              message={errorMessage(commitMutation.error, t('errors.generic'))}
-            />
-          ) : null}
-
-          {previewResult.errorCount > 0 ? (
-            <p className="mt-4 text-sm text-red-700 dark:text-red-400">
-              {t('import.fixErrorsHint')}
-            </p>
-          ) : null}
-
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() => commitMutation.mutate()}
-              loading={commitMutation.isPending}
-              disabled={previewResult.errorCount > 0 || commitMutation.isPending}
+            <label
+              htmlFor="import-file"
+              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[var(--r-md)] border-2 border-dashed border-line px-4 py-8 text-center transition-colors hover:border-accent/40 hover:bg-accent-soft/30"
             >
-              {t('import.commitButton', { count: previewResult.validCount })}
-            </Button>
-            <Button variant="secondary" onClick={handleStartOver}>
-              {t('import.startOver')}
-            </Button>
+              <span className="flex size-12 items-center justify-center rounded-full bg-accent-soft text-accent">
+                <Icon.Upload size={24} />
+              </span>
+              <span className="text-[0.9375rem] font-semibold">{t('import.dropzoneTitle')}</span>
+              <span className="text-caption text-ink-2">
+                {file
+                  ? t('import.dropzoneSelected', { name: file.name })
+                  : t('import.dropzoneHint')}
+              </span>
+              <input
+                ref={fileInputRef}
+                id="import-file"
+                type="file"
+                accept=".csv,text/csv"
+                className="sr-only"
+                onChange={handleFileChange}
+              />
+            </label>
+
+            {showPaste || pastedText ? (
+              <Field htmlFor="import-paste" label={t('import.pasteLabel')}>
+                <Textarea
+                  id="import-paste"
+                  value={pastedText}
+                  onChange={handlePasteChange}
+                  rows={5}
+                  placeholder={t('import.pastePlaceholder')}
+                  className="font-mono text-sm"
+                />
+              </Field>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowPaste(true)}
+                className="text-label inline-flex h-9 w-fit items-center gap-1 rounded-full px-2 text-accent hover:bg-accent-soft"
+              >
+                <Icon.Plus size={14} weight="bold" />
+                {t('import.pasteInstead')}
+              </button>
+            )}
+
+            {localError ? <ErrorMessage message={localError} /> : null}
+            {previewMutation.isError ? (
+              <ErrorMessage
+                message={errorMessage(previewMutation.error, t('errors.generic'))}
+                onRetry={handlePreview}
+              />
+            ) : null}
+
+            <div className="flex justify-end">
+              <Button
+                size="lg"
+                onClick={handlePreview}
+                loading={previewMutation.isPending}
+                disabled={!hasSource || previewMutation.isPending}
+                trailingIcon={
+                  <Icon.CaretRight size={16} weight="bold" className="rtl:-scale-x-100" />
+                }
+                className="w-full sm:w-auto"
+              >
+                {t('import.previewButton')}
+              </Button>
+            </div>
           </div>
-        </Card>
+        </Panel>
       ) : null}
 
-      {committedResult ? (
-        <Card className={cn('mt-6')}>
-          <CardHeader>
-            <CardTitle>{t('import.successTitle')}</CardTitle>
-          </CardHeader>
-          <p className="text-base text-slate-600 dark:text-slate-400">
-            {t('import.successMessage', { count: committedResult.importedCount })}
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Link to="/transactions" className={PRIMARY_LINK_CLASSES}>
-              {t('import.viewTransactions')}
-            </Link>
-            <Button variant="secondary" onClick={handleStartOver}>
-              {t('import.startOver')}
-            </Button>
+      {step === 2 && previewResult ? (
+        <Panel
+          flush
+          title={t('import.step2Title')}
+          className="animate-rise"
+          actions={
+            <div className="flex gap-2">
+              <Badge tone="gain" icon={<Icon.Check weight="bold" />}>
+                {t('import.validCount', { count: previewResult.validCount })}
+              </Badge>
+              {previewResult.errorCount > 0 ? (
+                <Badge tone="loss" icon={<Icon.WarningCircle weight="fill" />}>
+                  {t('import.errorCount', { count: previewResult.errorCount })}
+                </Badge>
+              ) : null}
+            </div>
+          }
+        >
+          <PreviewTable rows={previewResult.rows} language={settings.language} />
+
+          <div className="flex flex-col gap-3 p-5 md:p-6">
+            {commitMutation.isError ? (
+              <ErrorMessage message={errorMessage(commitMutation.error, t('errors.generic'))} />
+            ) : null}
+            {previewResult.errorCount > 0 ? (
+              <p className="text-caption text-ink-2">{t('import.fixErrorsHint')}</p>
+            ) : null}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="secondary" size="lg" onClick={handleStartOver}>
+                {t('import.startOver')}
+              </Button>
+              <Button
+                size="lg"
+                onClick={() => commitMutation.mutate()}
+                loading={commitMutation.isPending}
+                disabled={previewResult.errorCount > 0 || commitMutation.isPending}
+                trailingIcon={<Icon.Check size={16} weight="bold" />}
+              >
+                {t('import.commitButton', { count: previewResult.validCount })}
+              </Button>
+            </div>
           </div>
-        </Card>
+        </Panel>
+      ) : null}
+
+      {step === 3 && committedResult ? (
+        <Panel tone="gain" className="animate-rise">
+          <EmptyState
+            icon={<Icon.Check weight="bold" />}
+            title={t('import.successTitle')}
+            description={t('import.successMessage', { count: committedResult.importedCount })}
+            action={
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button onClick={() => void navigate('/transactions')}>
+                  {t('import.viewTransactions')}
+                </Button>
+                <Button variant="secondary" onClick={handleStartOver}>
+                  {t('import.importMore')}
+                </Button>
+              </div>
+            }
+          />
+        </Panel>
       ) : null}
     </>
   );

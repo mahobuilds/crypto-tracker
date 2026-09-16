@@ -9,6 +9,7 @@ export function formatFiat(amount: number, currency: Currency, language: Languag
   return new Intl.NumberFormat(locale(language), {
     style: 'currency',
     currency,
+    currencyDisplay: 'narrowSymbol',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
@@ -80,4 +81,38 @@ export function pnlTone(value: number): 'positive' | 'negative' | 'neutral' {
   if (value > 0) return 'positive';
   if (value < 0) return 'negative';
   return 'neutral';
+}
+
+/** Compact money for chart axes: $1.2k, $3.4M (converted to the base currency). */
+export function formatMoneyCompact(
+  amountUsd: number,
+  currency: Currency,
+  fx: FxRates,
+  language: Language,
+): string {
+  return new Intl.NumberFormat(locale(language), {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+    signDisplay: 'auto',
+  }).format(amountUsd * fx.rates[currency]);
+}
+
+/** Money with an explicit sign for profit/loss figures: +$1,234.00 / -$56.00. */
+export function formatSignedMoneyUsd(
+  amountUsd: number,
+  currency: Currency,
+  fx: FxRates,
+  language: Language,
+): string {
+  return new Intl.NumberFormat(locale(language), {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    signDisplay: 'exceptZero',
+  }).format(amountUsd * fx.rates[currency]);
 }

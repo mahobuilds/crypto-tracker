@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import type { SelectHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
-import { ChevronIcon } from '@/components/icons';
+import { Icon } from '@/components/icons';
 import { inputClasses } from './Input';
 
 export interface SelectOption {
@@ -32,7 +32,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
           </option>
         ))}
       </select>
-      <ChevronIcon className="pointer-events-none absolute end-4 top-1/2 size-5 -translate-y-1/2 rotate-90 text-slate-500" />
+      <span className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-ink-2">
+        <Icon.CaretDown weight="bold" size={16} />
+      </span>
     </div>
   );
 });
