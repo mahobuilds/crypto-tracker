@@ -4,8 +4,6 @@ A personal crypto portfolio tracker I built for my father. He buys and sells coi
 
 That is the whole app. You log a buy or a sell, and the dashboard keeps a running picture of your holdings with live prices, profit and loss, and a chart of how things moved over time. It works the same on a phone and on a laptop, it speaks English and Arabic (full right to left layout), and because everything lives on the server, what you enter on one device shows up on the other a few seconds later.
 
-![Dashboard](docs/screenshots/dashboard.png)
-
 ## Who it is for
 
 One non technical user who reads both English and Arabic, prefers big clear text, and does not want to learn a trading platform. That shaped every decision:
@@ -23,25 +21,17 @@ The first thing you see. Four numbers up top: total value, unrealized profit and
 
 Profit and loss is shown two ways side by side. The main figure uses average cost. A smaller FIFO figure (first in, first out) sits next to it, so my father can compare the two without picking one.
 
-![Dashboard in dark mode](docs/screenshots/dashboard-dark.png)
-
 ### Transactions
 
 Add, edit and delete buys and sells. Each entry has a coin (searched from the full CoinGecko list), quantity, price per unit, currency, date and time, and an optional note. A small fee of 0.1% is added automatically. A sell cannot exceed what you currently hold. The list is grouped by month and can be filtered by coin and by type.
-
-![Transactions](docs/screenshots/transactions.png)
 
 ### Group trades
 
 Sometimes my father goes in on a coin together with friends. A group trade records everyone who took part and their share in whole percent, adding up to 100. The transaction list shows who was in on it, the holdings page flags the coin with a "Yours 50%" badge, and expanding that holding shows a "Your share" section that counts only his part of each group trade.
 
-![Group transaction form](docs/screenshots/transaction-form-group.png)
-
 ### Holdings
 
 One row per coin: quantity held, average cost, current value and unrealized gain. Tap a row to expand it and see the transactions behind that position. Coins you hold through a group trade show your share as a badge.
-
-![Holdings](docs/screenshots/holdings.png)
 
 ### Live prices
 
@@ -62,14 +52,6 @@ Language (English or Arabic), base currency (USD, EUR, SAR or TRY, converted wit
 ## Phone and Arabic
 
 The app is a PWA, so it installs to the phone home screen and opens like a native app. On a phone the sidebar becomes a bottom tab bar. In Arabic the whole layout mirrors, including navigation, lists and charts.
-
-<p>
-  <img src="docs/screenshots/phone-dashboard.png" width="30%" alt="Dashboard on a phone" />
-  &nbsp;
-  <img src="docs/screenshots/phone-holdings.png" width="30%" alt="Holdings on a phone" />
-  &nbsp;
-  <img src="docs/screenshots/phone-arabic.png" width="30%" alt="Dashboard in Arabic" />
-</p>
 
 ## How it is built
 
