@@ -2,6 +2,7 @@
   "title": "Dashboard",
   "lastUpdated": "Prices updated {{time}}",
   "pricesUnavailable": "Prices unavailable right now",
+  "holdingsLink": "Holdings",
   "totalValue": "Total value",
   "invested": "Invested",
   "unrealizedPnl": "Unrealized P/L",
@@ -52,18 +53,6 @@
     "coins_one": "{{count}} coin",
     "coins_other": "{{count}} coins",
     "summary": "Allocation by coin: {{summary}}"
-  },
-  "holdings": {
-    "title": "Holdings",
-    "coin": "Coin",
-    "quantity": "Quantity",
-    "avgCost": "Avg. cost",
-    "avgShort": "avg",
-    "price": "Price",
-    "value": "Value",
-    "pnl": "P/L",
-    "allocation": "Allocation",
-    "noPrice": "No price"
   },
   "settingsButton": {
     "title": "Chart settings",

@@ -13,6 +13,8 @@ const fx: FxRates = {
 function input(overrides: Partial<TransactionInput> = {}): TransactionInput {
   return {
     type: 'buy',
+    scope: 'personal',
+    participants: [],
     coinId: 'bitcoin',
     coinSymbol: 'BTC',
     coinName: 'Bitcoin',
@@ -47,6 +49,8 @@ function row(overrides: Partial<TransactionRow> = {}): TransactionRow {
     id: 'tx-1',
     userId: 'user-1',
     type: 'buy',
+    scope: 'personal',
+    participants: '[]',
     coinId: 'bitcoin',
     coinSymbol: 'BTC',
     coinName: 'Bitcoin',
@@ -130,6 +134,8 @@ describe('rowToTransaction', () => {
     expect(result).toEqual({
       id: 'tx-1',
       type: 'buy',
+      scope: 'personal',
+      participants: [],
       coinId: 'bitcoin',
       coinSymbol: 'BTC',
       coinName: 'Bitcoin',
@@ -144,6 +150,25 @@ describe('rowToTransaction', () => {
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     });
+  });
+
+  it('parses group participants from the JSON column', () => {
+    const participants = [
+      { name: 'Ali', sharePct: 60, isMe: true },
+      { name: 'Omar', sharePct: 40, isMe: false },
+    ];
+    const result = rowToTransaction(
+      row({ scope: 'group', participants: JSON.stringify(participants) }),
+    );
+    expect(result.scope).toBe('group');
+    expect(result.participants).toEqual(participants);
+  });
+
+  it('ignores stored participants on a personal row and tolerates malformed JSON', () => {
+    const personal = rowToTransaction(row({ participants: '[{"name":"Ali","sharePct":50}]' }));
+    expect(personal.participants).toEqual([]);
+    const broken = rowToTransaction(row({ scope: 'group', participants: 'not json' }));
+    expect(broken.participants).toEqual([]);
   });
 
   it('maps a null note through as null and preserves a note', () => {

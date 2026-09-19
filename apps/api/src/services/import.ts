@@ -52,6 +52,8 @@ export async function resolveRows(
 
     const candidate: TransactionInput = {
       type: row.values.type,
+      scope: 'personal',
+      participants: [],
       coinId: coin.id,
       coinSymbol: coin.symbol.toUpperCase(),
       coinName: coin.name,

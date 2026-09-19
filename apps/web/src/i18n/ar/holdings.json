@@ -1,0 +1,48 @@
+{
+  "title": "الحيازات",
+  "subtitle_zero": "لا عملات · {{total}} · تم تحديث الأسعار {{time}}",
+  "subtitle_one": "عملة واحدة · {{total}} · تم تحديث الأسعار {{time}}",
+  "subtitle_two": "عملتان · {{total}} · تم تحديث الأسعار {{time}}",
+  "subtitle_few": "{{count}} عملات · {{total}} · تم تحديث الأسعار {{time}}",
+  "subtitle_many": "{{count}} عملة · {{total}} · تم تحديث الأسعار {{time}}",
+  "subtitle_other": "{{count}} عملة · {{total}} · تم تحديث الأسعار {{time}}",
+  "subtitleNoPrices_zero": "لا عملات · الأسعار غير متاحة حاليًا",
+  "subtitleNoPrices_one": "عملة واحدة · الأسعار غير متاحة حاليًا",
+  "subtitleNoPrices_two": "عملتان · الأسعار غير متاحة حاليًا",
+  "subtitleNoPrices_few": "{{count}} عملات · الأسعار غير متاحة حاليًا",
+  "subtitleNoPrices_many": "{{count}} عملة · الأسعار غير متاحة حاليًا",
+  "subtitleNoPrices_other": "{{count}} عملة · الأسعار غير متاحة حاليًا",
+  "avgShort": "متوسط",
+  "noPrice": "لا يوجد سعر",
+  "sharedBadge": "حصتك {{pct}}",
+  "facts": {
+    "quantity": "الكمية",
+    "avgCost": "متوسط التكلفة",
+    "price": "السعر الحالي",
+    "value": "القيمة الحالية",
+    "cost": "إجمالي التكلفة",
+    "unrealized": "الربح/الخسارة غير المحققة",
+    "realized": "الربح/الخسارة المحققة",
+    "realizedHint": "من مبيعات هذه العملة",
+    "allocation": "النسبة من المحفظة"
+  },
+  "share": {
+    "title": "حصتك",
+    "ofHolding": "{{pct}} من هذه الحيازة",
+    "description": "بعض هذه الصفقات تمت مع مجموعة. الأرقام أدناه تحسب حصتك فقط من كل صفقة جماعية."
+  },
+  "transactions": {
+    "title_zero": "لا معاملات",
+    "title_one": "معاملة واحدة",
+    "title_two": "معاملتان",
+    "title_few": "{{count}} معاملات",
+    "title_many": "{{count}} معاملة",
+    "title_other": "{{count}} معاملة",
+    "manage": "إدارة"
+  },
+  "empty": {
+    "title": "لا توجد حيازات بعد",
+    "description": "بمجرد تسجيل عملية شراء، تظهر العملة هنا مع قيمتها وأرباحها.",
+    "action": "إضافة معاملة"
+  }
+}

@@ -17,7 +17,6 @@ import { useSettings } from '@/app/settings/SettingsProvider';
 import { formatMoneyUsd, formatPct, formatRelative, formatSignedMoneyUsd } from '@/lib/format';
 import { AllocationChart } from './AllocationChart';
 import { ChartSettingsButton } from './ChartSettingsButton';
-import { HoldingsTable } from './HoldingsTable';
 import { PnlChart } from './PnlChart';
 import { MethodLine, PnlMethods } from './PnlMethods';
 import { usePortfolio } from './queries';
@@ -63,7 +62,15 @@ export function DashboardPage() {
             ? t('dashboard.pricesUnavailable')
             : undefined
       }
-      actions={<ChartSettingsButton />}
+      actions={
+        <>
+          <Button variant="secondary" onClick={() => void navigate('/holdings')}>
+            <Icon.Coins />
+            {t('dashboard.holdingsLink')}
+          </Button>
+          <ChartSettingsButton />
+        </>
+      }
     />
   );
 
@@ -205,15 +212,6 @@ export function DashboardPage() {
         <PnlMethods
           average={summary.methods.average}
           fifo={summary.methods.fifo}
-          currency={baseCurrency}
-          fx={fx}
-          language={language}
-        />
-      </div>
-
-      <div className="animate-rise" style={{ '--i': charts.length + 3 } as React.CSSProperties}>
-        <HoldingsTable
-          holdings={summary.holdings}
           currency={baseCurrency}
           fx={fx}
           language={language}

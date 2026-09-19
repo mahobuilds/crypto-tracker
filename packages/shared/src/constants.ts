@@ -10,6 +10,18 @@ export type Theme = (typeof THEMES)[number];
 export const TRANSACTION_TYPES = ['buy', 'sell'] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
+export const TRANSACTION_SCOPES = ['personal', 'group'] as const;
+export type TransactionScope = (typeof TRANSACTION_SCOPES)[number];
+
+/** A group participant's share of a transaction, in whole percent. All shares must sum to 100. */
+export const SHARE_PCT_MIN = 1;
+export const SHARE_PCT_MAX = 99;
+export const SHARE_PCT_TOTAL = 100;
+
+/** How the portfolio is valued: every group trade in full, or only the owner's share of it. */
+export const PORTFOLIO_VIEWS = ['whole', 'mine'] as const;
+export type PortfolioView = (typeof PORTFOLIO_VIEWS)[number];
+
 export const ALERT_DIRECTIONS = ['above', 'below'] as const;
 export type AlertDirection = (typeof ALERT_DIRECTIONS)[number];
 

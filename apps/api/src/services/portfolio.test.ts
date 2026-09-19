@@ -8,6 +8,8 @@ function row(overrides: Partial<TransactionRow> = {}): TransactionRow {
     id: 'tx-1',
     userId: 'user-1',
     type: 'buy',
+    scope: 'personal',
+    participants: '[]',
     coinId: 'bitcoin',
     coinSymbol: 'BTC',
     coinName: 'Bitcoin',
@@ -26,7 +28,13 @@ function row(overrides: Partial<TransactionRow> = {}): TransactionRow {
 }
 
 function snapshot(takenAt: string, totalValueUsd = 0): PortfolioSnapshot {
-  return { takenAt, totalValueUsd, investedUsd: totalValueUsd };
+  return {
+    takenAt,
+    totalValueUsd,
+    investedUsd: totalValueUsd,
+    ownTotalValueUsd: null,
+    ownInvestedUsd: null,
+  };
 }
 
 describe('rowToTransactionLike', () => {
@@ -43,7 +51,16 @@ describe('rowToTransactionLike', () => {
       feeUsd: 1,
       occurredAt: '2024-06-01T00:00:00.000Z',
       createdAt: '2024-06-01T00:00:00.000Z',
+      ownerSharePct: 100,
     });
+  });
+
+  it('carries the owner share of a group trade', () => {
+    const participants = JSON.stringify([
+      { name: 'Me', sharePct: 35, isMe: true },
+      { name: 'Ali', sharePct: 65, isMe: false },
+    ]);
+    expect(rowToTransactionLike(row({ scope: 'group', participants })).ownerSharePct).toBe(35);
   });
 
   it('throws for an unknown transaction type', () => {

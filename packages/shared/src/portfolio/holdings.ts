@@ -12,7 +12,23 @@ export type TransactionLike = Pick<
   | 'feeUsd'
   | 'occurredAt'
   | 'createdAt'
->;
+> & {
+  /** Owner's share of the trade in percent (1-100). Missing means 100 (a personal trade). */
+  ownerSharePct?: number;
+};
+
+/**
+ * Scales every trade down to the owner's share: quantity and fee shrink by `ownerSharePct`,
+ * the unit price stays. Personal trades (100%) come back unchanged. Pure.
+ */
+export function toOwnerShare<T extends TransactionLike>(txs: readonly T[]): T[] {
+  return txs.map((tx) => {
+    const pct = tx.ownerSharePct ?? 100;
+    if (pct >= 100) return tx;
+    const factor = pct / 100;
+    return { ...tx, quantity: tx.quantity * factor, feeUsd: tx.feeUsd * factor };
+  });
+}
 
 export interface HoldingCore {
   coinId: string;
@@ -21,6 +37,8 @@ export interface HoldingCore {
   quantity: number;
   averageCostUsd: number;
   investedUsd: number;
+  /** Realized P/L from this coin's sells so far (average-cost method). */
+  realizedPnlUsd: number;
 }
 
 export interface HoldingsResult {
@@ -51,6 +69,7 @@ interface CoinState {
   coinName: string;
   quantity: number;
   totalCostUsd: number;
+  realizedPnlUsd: number;
 }
 
 /**
@@ -70,6 +89,7 @@ export function computeHoldings(txs: readonly TransactionLike[]): HoldingsResult
         coinName: tx.coinName,
         quantity: 0,
         totalCostUsd: 0,
+        realizedPnlUsd: 0,
       };
       states.set(tx.coinId, state);
     }
@@ -84,7 +104,9 @@ export function computeHoldings(txs: readonly TransactionLike[]): HoldingsResult
 
     const soldQuantity = Math.min(tx.quantity, state.quantity);
     const averageCost = state.quantity > 0 ? state.totalCostUsd / state.quantity : 0;
-    realizedPnlUsd += (tx.pricePerUnitUsd - averageCost) * soldQuantity - tx.feeUsd;
+    const pnl = (tx.pricePerUnitUsd - averageCost) * soldQuantity - tx.feeUsd;
+    realizedPnlUsd += pnl;
+    state.realizedPnlUsd += pnl;
     state.totalCostUsd -= averageCost * soldQuantity;
     state.quantity -= soldQuantity;
     if (state.quantity < EPSILON) {
@@ -103,6 +125,7 @@ export function computeHoldings(txs: readonly TransactionLike[]): HoldingsResult
       quantity: state.quantity,
       averageCostUsd: state.totalCostUsd / state.quantity,
       investedUsd: state.totalCostUsd,
+      realizedPnlUsd: state.realizedPnlUsd,
     });
   }
   holdings.sort((a, b) => b.investedUsd - a.investedUsd);

@@ -11,7 +11,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { FxRates, HistoryRange, PortfolioSnapshot } from '@crypto-tracker/shared';
+import type {
+  FxRates,
+  HistoryRange,
+  PortfolioSnapshot,
+  PortfolioView,
+} from '@crypto-tracker/shared';
 import { Icon } from '@/components/icons';
 import {
   ListGroup,
@@ -62,14 +67,21 @@ function store(key: string, value: string) {
   }
 }
 
-function toPoints(points: PortfolioSnapshot[]): PnlPoint[] {
+/**
+ * Snapshot points for the chosen view. Owner's-share figures are null on snapshots taken
+ * before group trades existed; those fall back to the whole-portfolio figures, which were
+ * identical at the time.
+ */
+function toPoints(points: PortfolioSnapshot[], view: PortfolioView): PnlPoint[] {
   return points.map((p) => {
-    const pnlUsd = p.totalValueUsd - p.investedUsd;
+    const total = view === 'mine' ? (p.ownTotalValueUsd ?? p.totalValueUsd) : p.totalValueUsd;
+    const invested = view === 'mine' ? (p.ownInvestedUsd ?? p.investedUsd) : p.investedUsd;
+    const pnlUsd = total - invested;
     return {
       takenAt: p.takenAt,
       time: new Date(p.takenAt).getTime(),
       pnlUsd,
-      pnlPct: p.investedUsd > 0 ? (pnlUsd / p.investedUsd) * 100 : 0,
+      pnlPct: invested > 0 ? (pnlUsd / invested) * 100 : 0,
     };
   });
 }
@@ -196,7 +208,11 @@ function ChartBody({ points, mode, fx }: ChartBodyProps) {
   );
 }
 
-export function PnlChart() {
+export interface PnlChartProps {
+  view?: PortfolioView;
+}
+
+export function PnlChart({ view = 'whole' }: PnlChartProps) {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const { language, baseCurrency } = settings;
@@ -212,7 +228,7 @@ export function PnlChart() {
   useEffect(() => store(RANGE_STORAGE_KEY, range), [range]);
   useEffect(() => store(MODE_STORAGE_KEY, mode), [mode]);
 
-  const points = useMemo(() => toPoints(history.data?.points ?? []), [history.data]);
+  const points = useMemo(() => toPoints(history.data?.points ?? [], view), [history.data, view]);
   const first = points[0];
   const last = points[points.length - 1];
 
@@ -271,6 +287,7 @@ export function PnlChart() {
           rangeControl={<div className="md:hidden">{rangeControl}</div>}
           showTable={showTable}
           onToggleTable={() => setShowTable((v) => !v)}
+          view={view}
         />
       )}
     </PnlChartFrame>
@@ -299,6 +316,7 @@ interface PnlChartContentProps {
   rangeControl: ReactNode;
   showTable: boolean;
   onToggleTable: () => void;
+  view: PortfolioView;
 }
 
 function PnlChartContent({
@@ -310,11 +328,12 @@ function PnlChartContent({
   rangeControl,
   showTable,
   onToggleTable,
+  view,
 }: PnlChartContentProps) {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const { language, baseCurrency } = settings;
-  const fx = useFxFromPortfolio();
+  const fx = useFxFromPortfolio(view);
 
   const currentValue =
     mode === 'usd'
@@ -389,8 +408,8 @@ function PnlChartContent({
 }
 
 /** FX rates travel with the portfolio summary; fall back to USD identity until it loads. */
-function useFxFromPortfolio(): FxRates {
-  const portfolio = usePortfolio();
+function useFxFromPortfolio(view: PortfolioView): FxRates {
+  const portfolio = usePortfolio(view);
   return (
     portfolio.data?.fx ?? {
       base: 'USD',
