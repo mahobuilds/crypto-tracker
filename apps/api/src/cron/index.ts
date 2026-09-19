@@ -21,9 +21,24 @@ async function runOne(job: CronJob, env: Env): Promise<void> {
     await job.run(env);
     console.log(`[cron] ${job.name} ok (${Date.now() - startedAt}ms)`);
   } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    console.error(`[cron] ${job.name} failed: ${reason}`);
+    console.error(`[cron] ${job.name} failed: ${describeError(err)}`);
   }
+}
+
+/**
+ * Drizzle wraps database failures in a `DrizzleQueryError` whose message is only the SQL;
+ * the real reason (connection refused, bad password, missing column) sits in `cause`.
+ */
+export function describeError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const parts = [err.message];
+  let cause: unknown = err.cause;
+  while (cause instanceof Error) {
+    const code = 'code' in cause && typeof cause.code === 'string' ? ` [${cause.code}]` : '';
+    parts.push(`${cause.message}${code}`);
+    cause = cause.cause;
+  }
+  return parts.join(' <- ');
 }
 
 /**
