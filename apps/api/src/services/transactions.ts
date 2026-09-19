@@ -2,14 +2,18 @@ import { and, desc, eq } from 'drizzle-orm';
 import {
   calculateFee,
   CURRENCIES,
+  TRANSACTION_SCOPES,
   TRANSACTION_TYPES,
   applyChange,
   convertToUsd,
   findTimelineViolation,
+  ownerSharePct,
+  participantSchema,
   type FxRates,
   type Transaction,
   type TransactionInput,
   type TransactionLike,
+  type TransactionParticipant,
   type TransactionType,
 } from '@crypto-tracker/shared';
 import type { Database } from '../db/client';
@@ -22,6 +26,18 @@ function isOneOf<T extends string>(values: readonly T[], value: string): value i
   return (values as readonly string[]).includes(value);
 }
 
+/** Parses the JSON `participants` column; malformed data is treated as an empty list. */
+export function parseParticipants(raw: string): TransactionParticipant[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  const result = participantSchema.array().safeParse(parsed);
+  return result.success ? result.data : [];
+}
+
 /** Maps a DB row to the public `Transaction` shape. */
 export function rowToTransaction(row: TransactionRow): Transaction {
   if (!isOneOf(TRANSACTION_TYPES, row.type)) {
@@ -30,9 +46,14 @@ export function rowToTransaction(row: TransactionRow): Transaction {
   if (!isOneOf(CURRENCIES, row.currency)) {
     throw new Error(`Unknown currency "${row.currency}" for transaction ${row.id}`);
   }
+  if (!isOneOf(TRANSACTION_SCOPES, row.scope)) {
+    throw new Error(`Unknown transaction scope "${row.scope}" for transaction ${row.id}`);
+  }
   return {
     id: row.id,
     type: row.type,
+    scope: row.scope,
+    participants: row.scope === 'group' ? parseParticipants(row.participants) : [],
     coinId: row.coinId,
     coinSymbol: row.coinSymbol,
     coinName: row.coinName,
@@ -54,6 +75,9 @@ export function toTransactionLike(row: TransactionRow): TransactionLike {
   if (!isOneOf(TRANSACTION_TYPES, row.type)) {
     throw new Error(`Unknown transaction type "${row.type}" for transaction ${row.id}`);
   }
+  if (!isOneOf(TRANSACTION_SCOPES, row.scope)) {
+    throw new Error(`Unknown transaction scope "${row.scope}" for transaction ${row.id}`);
+  }
   return {
     id: row.id,
     type: row.type,
@@ -65,6 +89,10 @@ export function toTransactionLike(row: TransactionRow): TransactionLike {
     feeUsd: row.feeUsd,
     occurredAt: row.occurredAt,
     createdAt: row.createdAt,
+    ownerSharePct: ownerSharePct(
+      row.scope,
+      row.scope === 'group' ? parseParticipants(row.participants) : [],
+    ),
   };
 }
 
@@ -86,6 +114,7 @@ export function inputToLike(
     feeUsd: usd.feeUsd,
     occurredAt: input.occurredAt,
     createdAt,
+    ownerSharePct: ownerSharePct(input.scope, input.participants),
   };
 }
 
@@ -162,6 +191,8 @@ export function inputToRow(
     id,
     userId,
     type: input.type,
+    scope: input.scope,
+    participants: JSON.stringify(input.scope === 'group' ? input.participants : []),
     coinId: input.coinId,
     coinSymbol: input.coinSymbol,
     coinName: input.coinName,

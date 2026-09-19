@@ -77,7 +77,7 @@ export function Dialog({
       aria-modal="true"
       aria-labelledby={titleId}
       className={cn(
-        'fixed m-0 max-h-none w-full max-w-none bg-transparent p-0 text-ink backdrop:bg-black/40 backdrop:backdrop-blur-sm open:flex open:flex-col',
+        'fixed m-0 w-full max-w-none bg-transparent p-0 text-ink backdrop:bg-black/40 backdrop:backdrop-blur-sm open:flex open:flex-col',
         sheet
           ? 'inset-x-0 top-auto bottom-0 h-auto max-h-[92dvh] md:inset-0 md:m-auto md:max-h-[85dvh] md:w-[min(30rem,calc(100%-2rem))]'
           : 'inset-0 m-auto h-auto max-h-[85dvh] w-[min(30rem,calc(100%-2rem))]',

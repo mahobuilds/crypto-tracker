@@ -12,6 +12,7 @@ import type {
   MeResponse,
   PortfolioHistoryResponse,
   PortfolioSummary,
+  PortfolioView,
   PricesResponse,
   Transaction,
   TransactionListResponse,
@@ -69,6 +70,12 @@ const transactions: Transaction[] = [
   tx('t5', 'buy', 'bitcoin', 'BTC', 'Bitcoin', 0.5, 60000, 'USD', 10, iso(67 * DAY), 'First buy'),
   tx('t6', 'buy', 'cardano', 'ADA', 'Cardano', 3200, 0.62, 'USD', 0, iso(74 * DAY), null),
 ];
+transactions[1]!.scope = 'group';
+transactions[1]!.participants = [
+  { name: mockUser.name, sharePct: 50, isMe: true },
+  { name: 'Omar', sharePct: 30, isMe: false },
+  { name: 'Sami', sharePct: 20, isMe: false },
+];
 
 function tx(
   id: string,
@@ -86,6 +93,8 @@ function tx(
   return {
     id,
     type,
+    scope: 'personal',
+    participants: [],
     coinId,
     coinSymbol,
     coinName,
@@ -137,9 +146,12 @@ const holdingsSpec = [
   ['cardano', 'ADA', 'Cardano', 3200, 0.62],
 ] as const;
 
-function portfolio(): PortfolioSummary {
-  const holdings = holdingsSpec.map(([coinId, coinSymbol, coinName, quantity, averageCostUsd]) => {
+function portfolio(view: PortfolioView): PortfolioSummary {
+  // In mock data only the SOL buy is a group trade, at a 50% owner share.
+  const ownShare = (coinId: string) => (view === 'mine' && coinId === 'solana' ? 0.5 : 1);
+  const holdings = holdingsSpec.map(([coinId, coinSymbol, coinName, wholeQty, averageCostUsd]) => {
     const price = prices.prices[coinId]?.usd ?? null;
+    const quantity = wholeQty * ownShare(coinId);
     const investedUsd = quantity * averageCostUsd;
     const currentValueUsd = price === null ? null : quantity * price;
     const pnl = currentValueUsd === null ? null : currentValueUsd - investedUsd;
@@ -150,6 +162,7 @@ function portfolio(): PortfolioSummary {
       quantity,
       averageCostUsd,
       investedUsd,
+      realizedPnlUsd: coinId === 'bitcoin' ? 4168.11 * ownShare(coinId) : 0,
       currentPriceUsd: price,
       currentValueUsd,
       unrealizedPnlUsd: pnl,
@@ -165,6 +178,8 @@ function portfolio(): PortfolioSummary {
   holdings.sort((a, b) => (b.currentValueUsd ?? 0) - (a.currentValueUsd ?? 0));
   const unrealizedPnlUsd = totalValueUsd - investedUsd;
   return {
+    view,
+    hasGroupTransactions: true,
     totalValueUsd,
     investedUsd,
     unrealizedPnlUsd,
@@ -193,7 +208,9 @@ function portfolio(): PortfolioSummary {
 function history(range: string): PortfolioHistoryResponse {
   const spanDays = { '24h': 1, '7d': 7, '30d': 30, '90d': 90, '1y': 365, all: 120 }[range] ?? 30;
   const count = Math.min(240, spanDays <= 1 ? 24 : spanDays * 4);
-  const summary = portfolio();
+  const summary = portfolio('whole');
+  const mine = portfolio('mine');
+  const ownRatio = mine.investedUsd / summary.investedUsd;
   const invested = summary.investedUsd;
   const finalPnl = summary.unrealizedPnlUsd;
   const points = [];
@@ -213,6 +230,8 @@ function history(range: string): PortfolioHistoryResponse {
       takenAt: iso(((count - 1 - i) / (count - 1)) * spanDays * DAY),
       investedUsd: invested,
       totalValueUsd: invested + p * scale,
+      ownInvestedUsd: mine.investedUsd,
+      ownTotalValueUsd: mine.investedUsd + p * scale * ownRatio,
     })),
   };
 }
@@ -287,7 +306,9 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
     Object.assign(me.settings, init.json as object);
     return me.settings;
   }
-  if (p === '/api/portfolio') return portfolio();
+  if (p === '/api/portfolio') {
+    return portfolio(url.searchParams.get('view') === 'mine' ? 'mine' : 'whole');
+  }
   if (p === '/api/portfolio/history') return history(url.searchParams.get('range') ?? '30d');
   if (p === '/api/prices') {
     const ids = (url.searchParams.get('ids') ?? '').split(',').filter(Boolean);
@@ -331,6 +352,8 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
       input.occurredAt,
       input.note,
     );
+    created.scope = input.scope;
+    created.participants = input.participants;
     transactions.unshift(created);
     return created;
   }
@@ -355,6 +378,8 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
         line: 2,
         input: {
           type: 'buy',
+          scope: 'personal',
+          participants: [],
           coinId: 'ethereum',
           coinSymbol: 'ETH',
           coinName: 'Ethereum',

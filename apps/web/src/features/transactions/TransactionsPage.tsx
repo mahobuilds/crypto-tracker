@@ -27,7 +27,7 @@ import { DeleteTransactionDialog } from './DeleteTransactionDialog';
 import { TransactionForm } from './TransactionForm';
 import type { TransactionsFilter } from './queries';
 import { useTransactions } from './queries';
-import { formatTransactionTotal } from './utils';
+import { formatParticipants, formatTransactionTotal } from './utils';
 
 function buildCoinOptions(transactions: Transaction[], allLabel: string): SelectOption[] {
   const seen = new Map<string, string>();
@@ -210,18 +210,36 @@ export function TransactionsPage() {
                   <ListRow
                     key={tx.id}
                     className="border-0"
+                    multiline={tx.scope === 'group'}
                     leading={<Avatar label={tx.coinSymbol} />}
                     title={tx.coinSymbol}
                     titleAside={
-                      <Badge tone={tx.type === 'buy' ? 'gain' : 'loss'}>
-                        {t(`transactions.type.${tx.type}`)}
-                      </Badge>
+                      <>
+                        <Badge tone={tx.type === 'buy' ? 'gain' : 'loss'}>
+                          {t(`transactions.type.${tx.type}`)}
+                        </Badge>
+                        {tx.scope === 'group' ? (
+                          <Badge tone="accent" icon={<Icon.UsersThree weight="bold" />}>
+                            {t('transactions.scope.group')}
+                          </Badge>
+                        ) : null}
+                      </>
                     }
                     subtitle={
-                      `${formatDate(tx.occurredAt, language)} · ${formatQuantity(tx.quantity, language)} ${tx.coinSymbol} ${t('transactions.at')} ${formatFiat(tx.pricePerUnit, tx.currency, language)}` +
-                      (tx.fee > 0
-                        ? ` · ${t('transactions.list.fee')} ${formatFiat(tx.fee, tx.currency, language)}`
-                        : '')
+                      <>
+                        <span className="block truncate">
+                          {`${formatDate(tx.occurredAt, language)} · ${formatQuantity(tx.quantity, language)} ${tx.coinSymbol} ${t('transactions.at')} ${formatFiat(tx.pricePerUnit, tx.currency, language)}` +
+                            (tx.fee > 0
+                              ? ` · ${t('transactions.list.fee')} ${formatFiat(tx.fee, tx.currency, language)}`
+                              : '')}
+                        </span>
+                        {tx.scope === 'group' ? (
+                          <span className="block">
+                            <Icon.UsersThree />{' '}
+                            {formatParticipants(tx.participants, language, t('transactions.you'))}
+                          </span>
+                        ) : null}
+                      </>
                     }
                     trailing={formatTransactionTotal(
                       tx.quantity,

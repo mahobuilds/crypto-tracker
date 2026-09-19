@@ -1,6 +1,7 @@
 {
   "dashboard": "Dashboard",
   "transactions": "Transactions",
+  "holdings": "Holdings",
   "prices": "Prices",
   "alerts": "Alerts",
   "import": "Import",

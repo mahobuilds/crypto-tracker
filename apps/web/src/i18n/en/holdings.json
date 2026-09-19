@@ -1,0 +1,36 @@
+{
+  "title": "Holdings",
+  "subtitle_one": "{{count}} coin · {{total}} · prices updated {{time}}",
+  "subtitle_other": "{{count}} coins · {{total}} · prices updated {{time}}",
+  "subtitleNoPrices_one": "{{count}} coin · prices unavailable right now",
+  "subtitleNoPrices_other": "{{count}} coins · prices unavailable right now",
+  "avgShort": "avg",
+  "noPrice": "No price",
+  "sharedBadge": "Yours {{pct}}",
+  "facts": {
+    "quantity": "Quantity",
+    "avgCost": "Average cost",
+    "price": "Current price",
+    "value": "Current value",
+    "cost": "Total cost",
+    "unrealized": "Unrealized P/L",
+    "realized": "Realized P/L",
+    "realizedHint": "From sales of this coin",
+    "allocation": "Share of portfolio"
+  },
+  "share": {
+    "title": "Your share",
+    "ofHolding": "{{pct}} of this holding",
+    "description": "Some of these trades were made with a group. The figures below count only your part of each group trade."
+  },
+  "transactions": {
+    "title_one": "{{count}} transaction",
+    "title_other": "{{count}} transactions",
+    "manage": "Manage"
+  },
+  "empty": {
+    "title": "No holdings yet",
+    "description": "Once you record a buy, the coin appears here with its value and profit.",
+    "action": "Add a transaction"
+  }
+}

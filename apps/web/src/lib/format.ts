@@ -38,6 +38,14 @@ export function formatPct(
   }).format(pct / 100);
 }
 
+/** Whole-number percent without a sign, e.g. "60%" (a participant's share). */
+export function formatWholePct(pct: number, language: Language): string {
+  return new Intl.NumberFormat(locale(language), {
+    style: 'percent',
+    maximumFractionDigits: 0,
+  }).format(pct / 100);
+}
+
 export function formatQuantity(qty: number, language: Language): string {
   return new Intl.NumberFormat(locale(language), {
     minimumFractionDigits: 0,

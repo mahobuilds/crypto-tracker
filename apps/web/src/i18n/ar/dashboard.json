@@ -2,6 +2,7 @@
   "title": "لوحة المتابعة",
   "lastUpdated": "تم تحديث الأسعار {{time}}",
   "pricesUnavailable": "الأسعار غير متاحة الآن",
+  "holdingsLink": "الحيازات",
   "totalValue": "القيمة الإجمالية",
   "invested": "المبلغ المستثمر",
   "unrealizedPnl": "الربح/الخسارة غير المحققة",
@@ -64,18 +65,6 @@
     "coins_many": "{{count}} عملة",
     "coins_other": "{{count}} عملة",
     "summary": "التوزيع حسب العملة: {{summary}}"
-  },
-  "holdings": {
-    "title": "الممتلكات",
-    "coin": "العملة",
-    "quantity": "الكمية",
-    "avgCost": "متوسط التكلفة",
-    "avgShort": "المتوسط",
-    "price": "السعر",
-    "value": "القيمة",
-    "pnl": "الربح/الخسارة",
-    "allocation": "التوزيع",
-    "noPrice": "لا يوجد سعر"
   },
   "settingsButton": {
     "title": "إعدادات الرسوم البيانية",

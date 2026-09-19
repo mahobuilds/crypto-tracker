@@ -1,7 +1,19 @@
-import type { Currency, Language } from '@crypto-tracker/shared';
+import type { Currency, Language, TransactionParticipant } from '@crypto-tracker/shared';
 import type { TFunction } from 'i18next';
 import { ApiRequestError } from '@/lib/api';
-import { formatFiat } from '@/lib/format';
+import { formatFiat, formatWholePct } from '@/lib/format';
+
+/** "You 40% · Ali 60%" for a group transaction's list row; the owner always comes first. */
+export function formatParticipants(
+  participants: readonly TransactionParticipant[],
+  language: Language,
+  youLabel: string,
+): string {
+  const ordered = [...participants].sort((a, b) => Number(b.isMe) - Number(a.isMe));
+  return ordered
+    .map((p) => `${p.isMe ? youLabel : p.name} ${formatWholePct(p.sharePct, language)}`)
+    .join(' · ');
+}
 
 /** Formats `quantity * pricePerUnit` as a currency amount. */
 export function formatTransactionTotal(

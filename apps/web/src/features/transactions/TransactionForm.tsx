@@ -4,11 +4,15 @@ import { useTranslation } from 'react-i18next';
 import {
   CURRENCIES,
   CURRENCY_SYMBOLS,
+  SHARE_PCT_TOTAL,
   calculateFee,
+  totalSharePct,
   transactionInputSchema,
   type Currency,
   type CoinSearchResult,
   type Transaction,
+  type TransactionParticipant,
+  type TransactionScope,
   type TransactionType,
 } from '@crypto-tracker/shared';
 import { CoinPicker } from '@/components/CoinPicker';
@@ -28,6 +32,7 @@ import { Icon } from '@/components/icons';
 import type { SelectOption } from '@/components/ui';
 import { useSettings } from '@/app/settings/SettingsProvider';
 import { formatFiat } from '@/lib/format';
+import { ParticipantsEditor } from './ParticipantsEditor';
 import { useCreateTransaction, useUpdateTransaction } from './queries';
 import { fromDatetimeLocal, resolveTransactionError, toDatetimeLocal } from './utils';
 
@@ -40,6 +45,8 @@ export interface TransactionFormProps {
 
 interface FormState {
   type: TransactionType;
+  scope: TransactionScope;
+  participants: TransactionParticipant[];
   coin: CoinSearchResult | null;
   quantity: string;
   pricePerUnit: string;
@@ -50,6 +57,7 @@ interface FormState {
 
 interface FieldErrors {
   coin?: string;
+  participants?: string;
   quantity?: string;
   pricePerUnit?: string;
   currency?: string;
@@ -57,10 +65,39 @@ interface FieldErrors {
   note?: string;
 }
 
-function buildInitialState(transaction: Transaction | null, baseCurrency: Currency): FormState {
+/** Default owner share when a group is started: the rest goes to the friends added after. */
+const DEFAULT_OWNER_SHARE_PCT = 50;
+
+function ownerRow(ownerName: string): TransactionParticipant {
+  return { name: ownerName, sharePct: DEFAULT_OWNER_SHARE_PCT, isMe: true };
+}
+
+/** Makes sure a group list starts with exactly one owner row (older data may lack it). */
+function withOwner(
+  participants: readonly TransactionParticipant[],
+  ownerName: string,
+): TransactionParticipant[] {
+  const owner = participants.find((participant) => participant.isMe);
+  const others = participants.filter((participant) => !participant.isMe);
+  return [owner ?? { ...ownerRow(ownerName), sharePct: 1 }, ...others];
+}
+
+function buildInitialState(
+  transaction: Transaction | null,
+  baseCurrency: Currency,
+  ownerName: string,
+): FormState {
   if (transaction) {
     return {
       type: transaction.type,
+      scope: transaction.scope,
+      participants:
+        transaction.scope === 'group'
+          ? withOwner(
+              transaction.participants.map((participant) => ({ ...participant })),
+              ownerName,
+            )
+          : [],
       coin: {
         id: transaction.coinId,
         symbol: transaction.coinSymbol,
@@ -76,6 +113,8 @@ function buildInitialState(transaction: Transaction | null, baseCurrency: Curren
   }
   return {
     type: 'buy',
+    scope: 'personal',
+    participants: [],
     coin: null,
     quantity: '',
     pricePerUnit: '',
@@ -87,27 +126,32 @@ function buildInitialState(transaction: Transaction | null, baseCurrency: Curren
 
 export function TransactionForm({ open, transaction, onClose, onSaved }: TransactionFormProps) {
   const { t } = useTranslation();
-  const { settings } = useSettings();
+  const { settings, user } = useSettings();
   const createMutation = useCreateTransaction();
   const updateMutation = useUpdateTransaction();
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   const [form, setForm] = useState<FormState>(() =>
-    buildInitialState(transaction, settings.baseCurrency),
+    buildInitialState(transaction, settings.baseCurrency, user.name),
   );
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [participantNameErrors, setParticipantNameErrors] = useState<ReadonlySet<number>>(
+    () => new Set(),
+  );
   const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setForm(buildInitialState(transaction, settings.baseCurrency));
+    setForm(buildInitialState(transaction, settings.baseCurrency, user.name));
     setErrors({});
+    setParticipantNameErrors(new Set());
     setServerError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, transaction]);
 
   const formId = 'transaction-form';
   const coinFieldId = 'transaction-form-coin';
+  const participantsId = 'transaction-form-participants';
   const quantityId = 'transaction-form-quantity';
   const priceId = 'transaction-form-price';
   const currencyId = 'transaction-form-currency';
@@ -135,12 +179,47 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function updateParticipants(participants: TransactionParticipant[]) {
+    setForm((prev) => ({ ...prev, participants }));
+    setParticipantNameErrors(new Set());
+    setErrors((prev) => (prev.participants ? { ...prev, participants: undefined } : prev));
+  }
+
+  function changeScope(scope: TransactionScope) {
+    setForm((prev) => ({
+      ...prev,
+      scope,
+      participants:
+        scope === 'group' && prev.participants.length === 0
+          ? [ownerRow(user.name)]
+          : prev.participants,
+    }));
+  }
+
+  const isGroup = form.scope === 'group';
+  const groupTotal = totalSharePct(form.participants);
+  const groupComplete = !isGroup || groupTotal === SHARE_PCT_TOTAL;
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setServerError(null);
 
+    const participants = isGroup
+      ? form.participants.map((participant) => ({
+          name: participant.name.trim(),
+          sharePct: participant.sharePct,
+          isMe: participant.isMe,
+        }))
+      : [];
+    const blankNames = new Set<number>();
+    participants.forEach((participant, index) => {
+      if (participant.name === '') blankNames.add(index);
+    });
+
     const raw = {
       type: form.type,
+      scope: form.scope,
+      participants,
       coinId: form.coin?.id ?? '',
       coinSymbol: form.coin?.symbol ?? '',
       coinName: form.coin?.name ?? '',
@@ -155,11 +234,18 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
     const result = transactionInputSchema.safeParse(raw);
     if (!result.success) {
       const flat = result.error.flatten().fieldErrors;
+      const participantsIssue = flat.participants !== undefined || blankNames.size > 0;
+      setParticipantNameErrors(blankNames);
       setErrors({
         coin:
           flat.coinId || flat.coinSymbol || flat.coinName
             ? t('transactions.form.errors.coin')
             : undefined,
+        participants: participantsIssue
+          ? blankNames.size > 0
+            ? t('transactions.form.errors.participantName')
+            : t('transactions.form.errors.participantsTotal', { total: SHARE_PCT_TOTAL })
+          : undefined,
         quantity: flat.quantity ? t('transactions.form.errors.quantity') : undefined,
         pricePerUnit: flat.pricePerUnit ? t('transactions.form.errors.pricePerUnit') : undefined,
         currency: flat.currency ? t('transactions.form.errors.currency') : undefined,
@@ -170,6 +256,7 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
     }
 
     setErrors({});
+    setParticipantNameErrors(new Set());
     try {
       if (transaction) {
         await updateMutation.mutateAsync({ id: transaction.id, input: result.data });
@@ -200,6 +287,7 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
             type="submit"
             size="lg"
             loading={isSaving}
+            disabled={!groupComplete}
             trailingIcon={<Icon.Check size={16} weight="bold" />}
           >
             {t('transactions.form.save')}
@@ -209,6 +297,17 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
     >
       {serverError ? <ErrorMessage message={serverError} className="mb-4" /> : null}
       <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-4 pb-1">
+        <SegmentedControl
+          fullWidth
+          label={t('transactions.form.scope')}
+          value={form.scope}
+          onChange={changeScope}
+          options={[
+            { value: 'personal', label: t('transactions.form.personal') },
+            { value: 'group', label: t('transactions.form.group.tab'), icon: <Icon.UsersThree /> },
+          ]}
+        />
+
         <SegmentedControl
           fullWidth
           label={t('transactions.form.type')}
@@ -297,6 +396,17 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
             />
           </Field>
         </div>
+
+        {isGroup ? (
+          <ParticipantsEditor
+            fieldId={participantsId}
+            participants={form.participants}
+            onChange={updateParticipants}
+            language={settings.language}
+            nameErrors={participantNameErrors}
+            error={errors.participants}
+          />
+        ) : null}
 
         <Field
           htmlFor={noteId}

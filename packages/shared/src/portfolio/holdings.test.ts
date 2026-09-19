@@ -44,6 +44,19 @@ describe('computeHoldings', () => {
     expect(result.realizedPnlUsd).toBe(0);
   });
 
+  it('tracks realized P/L per coin', () => {
+    const result = computeHoldings([
+      tx({ coinId: 'bitcoin', quantity: 2, pricePerUnitUsd: 100 }),
+      tx({ coinId: 'bitcoin', type: 'sell', quantity: 1, pricePerUnitUsd: 150, feeUsd: 5 }),
+      tx({ coinId: 'ethereum', quantity: 1, pricePerUnitUsd: 10 }),
+    ]);
+    const btc = result.holdings.find((h) => h.coinId === 'bitcoin');
+    const eth = result.holdings.find((h) => h.coinId === 'ethereum');
+    expect(btc?.realizedPnlUsd).toBeCloseTo(45);
+    expect(eth?.realizedPnlUsd).toBe(0);
+    expect(result.realizedPnlUsd).toBeCloseTo(45);
+  });
+
   it('computes the weighted average of two buys', () => {
     const result = computeHoldings([
       tx({ quantity: 1, pricePerUnitUsd: 100 }),

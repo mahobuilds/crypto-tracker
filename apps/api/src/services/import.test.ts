@@ -39,6 +39,8 @@ describe('resolveRows', () => {
     expect(result?.errors).toEqual([]);
     expect(result?.input).toEqual({
       type: 'buy',
+      scope: 'personal',
+      participants: [],
       coinId: 'bitcoin',
       coinSymbol: 'BTC',
       coinName: 'Bitcoin',

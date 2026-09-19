@@ -8,6 +8,8 @@ describe('computePortfolio', () => {
   it('returns zeros and an empty list for no transactions', () => {
     const summary = computePortfolio({ transactions: [], prices: {}, fx, pricesUpdatedAt: null });
     expect(summary).toEqual({
+      view: 'whole',
+      hasGroupTransactions: false,
       totalValueUsd: 0,
       investedUsd: 0,
       unrealizedPnlUsd: 0,
@@ -150,5 +152,54 @@ describe('computePortfolio', () => {
     });
     expect(summary.realizedPnlUsd).toBeCloseTo(28);
     expect(summary.holdings[0]?.quantity).toBeCloseTo(1);
+  });
+
+  it('scales group trades to the owner share in the mine view only', () => {
+    const transactions = [
+      tx({ coinId: 'bitcoin', quantity: 2, pricePerUnitUsd: 100, feeUsd: 10, ownerSharePct: 25 }),
+      tx({ coinId: 'ethereum', quantity: 10, pricePerUnitUsd: 10 }),
+    ];
+    const prices = { bitcoin: quote('bitcoin', 150), ethereum: quote('ethereum', 5) };
+
+    const whole = computePortfolio({ transactions, prices, fx, pricesUpdatedAt: updatedAt });
+    expect(whole.view).toBe('whole');
+    expect(whole.hasGroupTransactions).toBe(true);
+    expect(whole.investedUsd).toBeCloseTo(210 + 100);
+    expect(whole.totalValueUsd).toBeCloseTo(300 + 50);
+
+    const mine = computePortfolio({
+      transactions,
+      prices,
+      fx,
+      pricesUpdatedAt: updatedAt,
+      view: 'mine',
+    });
+    expect(mine.view).toBe('mine');
+    expect(mine.hasGroupTransactions).toBe(true);
+    const btc = mine.holdings.find((h) => h.coinId === 'bitcoin');
+    expect(btc?.quantity).toBeCloseTo(0.5);
+    expect(btc?.investedUsd).toBeCloseTo(0.5 * 100 + 2.5);
+    expect(btc?.averageCostUsd).toBeCloseTo(105);
+    expect(mine.investedUsd).toBeCloseTo(52.5 + 100);
+    expect(mine.totalValueUsd).toBeCloseTo(75 + 50);
+    expect(mine.methods.fifo.investedUsd).toBeCloseTo(52.5 + 100);
+  });
+
+  it('applies the owner share to sells as well so realized P/L is proportional', () => {
+    const transactions = [
+      tx({ coinId: 'bitcoin', type: 'buy', quantity: 4, pricePerUnitUsd: 100, ownerSharePct: 50 }),
+      tx({ coinId: 'bitcoin', type: 'sell', quantity: 2, pricePerUnitUsd: 150, ownerSharePct: 50 }),
+    ];
+    const whole = computePortfolio({ transactions, prices: {}, fx, pricesUpdatedAt: null });
+    const mine = computePortfolio({
+      transactions,
+      prices: {},
+      fx,
+      pricesUpdatedAt: null,
+      view: 'mine',
+    });
+    expect(whole.realizedPnlUsd).toBeCloseTo(100);
+    expect(mine.realizedPnlUsd).toBeCloseTo(50);
+    expect(mine.holdings[0]?.quantity).toBeCloseTo(1);
   });
 });

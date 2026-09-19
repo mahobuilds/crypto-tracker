@@ -26,8 +26,97 @@ describe('transactionInputSchema', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       const data: TransactionInput = result.data;
-      expect(data).toEqual({ ...valid, coinSymbol: 'BTC' });
+      expect(data).toEqual({ ...valid, coinSymbol: 'BTC', scope: 'personal', participants: [] });
     }
+  });
+
+  it('defaults scope to personal with no participants', () => {
+    const result = transactionInputSchema.parse(valid);
+    expect(result.scope).toBe('personal');
+    expect(result.participants).toEqual([]);
+  });
+
+  it('rejects participants on a personal transaction', () => {
+    expect(
+      failingPaths({ ...valid, scope: 'personal', participants: [{ name: 'Ali', sharePct: 50 }] }),
+    ).toEqual(['participants']);
+  });
+
+  it('accepts a group transaction whose shares add up to 100 with one owner', () => {
+    const group = {
+      ...valid,
+      scope: 'group',
+      participants: [
+        { name: 'Me', sharePct: 60, isMe: true },
+        { name: 'Omar', sharePct: 40 },
+      ],
+    };
+    expect(failingPaths(group)).toEqual([]);
+    expect(transactionInputSchema.parse(group).participants).toEqual([
+      { name: 'Me', sharePct: 60, isMe: true },
+      { name: 'Omar', sharePct: 40, isMe: false },
+    ]);
+  });
+
+  it('rejects group shares that sum below or above 100', () => {
+    const below = {
+      ...valid,
+      scope: 'group',
+      participants: [{ name: 'Me', sharePct: 70, isMe: true }],
+    };
+    const above = {
+      ...valid,
+      scope: 'group',
+      participants: [
+        { name: 'Me', sharePct: 70, isMe: true },
+        { name: 'Omar', sharePct: 40 },
+      ],
+    };
+    expect(failingPaths(below)).toEqual(['participants']);
+    expect(failingPaths(above)).toEqual(['participants']);
+    expect(failingPaths({ ...valid, scope: 'group', participants: [] })).toEqual([
+      'participants',
+      'participants',
+    ]);
+  });
+
+  it('requires exactly one participant marked as the owner', () => {
+    const none = {
+      ...valid,
+      scope: 'group',
+      participants: [
+        { name: 'Ali', sharePct: 60 },
+        { name: 'Omar', sharePct: 40 },
+      ],
+    };
+    const two = {
+      ...valid,
+      scope: 'group',
+      participants: [
+        { name: 'Me', sharePct: 60, isMe: true },
+        { name: 'Me again', sharePct: 40, isMe: true },
+      ],
+    };
+    expect(failingPaths(none)).toEqual(['participants']);
+    expect(failingPaths(two)).toEqual(['participants']);
+  });
+
+  it('rejects a share outside 1-99, a fractional share, or a blank name', () => {
+    const withFirst = (participant: unknown) => ({
+      ...valid,
+      scope: 'group',
+      participants: [participant, { name: 'Omar', sharePct: 1, isMe: true }],
+    });
+    expect(failingPaths(withFirst({ name: 'Ali', sharePct: 0 }))).toContain(
+      'participants.0.sharePct',
+    );
+    expect(failingPaths(withFirst({ name: 'Ali', sharePct: 100 }))).toContain(
+      'participants.0.sharePct',
+    );
+    expect(failingPaths(withFirst({ name: 'Ali', sharePct: 49.5 }))).toContain(
+      'participants.0.sharePct',
+    );
+    expect(failingPaths(withFirst({ name: '   ', sharePct: 99 }))).toContain('participants.0.name');
   });
 
   it('defaults fee to 0 and note to null', () => {

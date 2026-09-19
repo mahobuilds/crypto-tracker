@@ -3,7 +3,9 @@ import type {
   ChartKind,
   Currency,
   Language,
+  PortfolioView,
   Theme,
+  TransactionScope,
   TransactionType,
 } from './constants';
 
@@ -44,9 +46,22 @@ export interface MeResponse {
   settings: Settings;
 }
 
+/**
+ * One person in a group transaction and their share of it, in whole percent (1-99).
+ * Exactly one participant per group trade is the account owner (`isMe`).
+ */
+export interface TransactionParticipant {
+  name: string;
+  sharePct: number;
+  isMe: boolean;
+}
+
 export interface Transaction {
   id: string;
   type: TransactionType;
+  /** Personal trades have no participants; group trades list them, shares summing to 100. */
+  scope: TransactionScope;
+  participants: TransactionParticipant[];
   /** CoinGecko id, e.g. "bitcoin". */
   coinId: string;
   /** Upper-case ticker, e.g. "BTC". */
@@ -72,6 +87,8 @@ export interface Transaction {
 /** Body of `POST /api/transactions` and `PUT /api/transactions/:id`. */
 export interface TransactionInput {
   type: TransactionType;
+  scope: TransactionScope;
+  participants: TransactionParticipant[];
   coinId: string;
   coinSymbol: string;
   coinName: string;
@@ -132,6 +149,8 @@ export interface Holding {
   averageCostUsd: number;
   /** quantity * averageCostUsd */
   investedUsd: number;
+  /** Realized P/L from this coin's sells so far (average-cost method). */
+  realizedPnlUsd: number;
   currentPriceUsd: number | null;
   currentValueUsd: number | null;
   unrealizedPnlUsd: number | null;
@@ -149,8 +168,12 @@ export interface PnlByMethod {
   unrealizedPnlPct: number | null;
 }
 
-/** Response of `GET /api/portfolio`. Top-level figures use the average-cost method. */
+/** Response of `GET /api/portfolio?view=`. Top-level figures use the average-cost method. */
 export interface PortfolioSummary {
+  /** `whole` counts group trades in full; `mine` scales them to the owner's share. */
+  view: PortfolioView;
+  /** True when at least one group transaction exists, so the view toggle is worth showing. */
+  hasGroupTransactions: boolean;
   totalValueUsd: number;
   investedUsd: number;
   unrealizedPnlUsd: number;
@@ -170,6 +193,9 @@ export interface PortfolioSnapshot {
   takenAt: string;
   totalValueUsd: number;
   investedUsd: number;
+  /** Owner's-share figures; null for snapshots taken before group trades existed. */
+  ownTotalValueUsd: number | null;
+  ownInvestedUsd: number | null;
 }
 
 export type HistoryRange = '24h' | '7d' | '30d' | '90d' | '1y' | 'all';

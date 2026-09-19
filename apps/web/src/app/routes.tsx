@@ -8,6 +8,7 @@ import { DashboardPage } from '@/features/dashboard';
 import { ImportPage } from '@/features/import';
 import { PricesPage } from '@/features/prices';
 import { SettingsPage } from '@/features/settings';
+import { HoldingsPage } from '@/features/holdings';
 import { TransactionsPage } from '@/features/transactions';
 
 /**
@@ -17,6 +18,7 @@ import { TransactionsPage } from '@/features/transactions';
  */
 export const featureRoutes: RouteObject[] = [
   { path: 'transactions', element: <TransactionsPage /> },
+  { path: 'holdings', element: <HoldingsPage /> },
   { path: 'import', element: <ImportPage /> },
   { path: 'prices', element: <PricesPage /> },
   { path: 'alerts', element: <AlertsPage /> },

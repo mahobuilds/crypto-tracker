@@ -1,12 +1,19 @@
+import type { PortfolioView } from '../constants';
 import type { FxRates, Holding, PnlByMethod, PortfolioSummary, PriceQuote } from '../types';
 import { computeFifo } from './fifo';
-import { computeHoldings, type TransactionLike } from './holdings';
+import { computeHoldings, toOwnerShare, type TransactionLike } from './holdings';
 
 export interface ComputePortfolioInput {
   transactions: readonly TransactionLike[];
   prices: Readonly<Record<string, PriceQuote | undefined>>;
   fx: FxRates;
   pricesUpdatedAt: string | null;
+  /** Defaults to `whole`. `mine` values only the owner's share of group trades. */
+  view?: PortfolioView;
+}
+
+function hasGroupTrades(txs: readonly TransactionLike[]): boolean {
+  return txs.some((tx) => (tx.ownerSharePct ?? 100) < 100);
 }
 
 function pctOf(numerator: number, denominator: number): number {
@@ -15,7 +22,9 @@ function pctOf(numerator: number, denominator: number): number {
 
 /** Builds the `GET /api/portfolio` summary from transactions and the latest prices. */
 export function computePortfolio(input: ComputePortfolioInput): PortfolioSummary {
-  const { holdings: cores, realizedPnlUsd } = computeHoldings(input.transactions);
+  const view = input.view ?? 'whole';
+  const transactions = view === 'mine' ? toOwnerShare(input.transactions) : input.transactions;
+  const { holdings: cores, realizedPnlUsd } = computeHoldings(transactions);
 
   let totalValueUsd = 0;
   let investedUsd = 0;
@@ -73,7 +82,7 @@ export function computePortfolio(input: ComputePortfolioInput): PortfolioSummary
     unrealizedPnlPct: pricedInvestedUsd > 0 ? pctOf(unrealizedPnlUsd, pricedInvestedUsd) : null,
   };
 
-  const fifoResult = computeFifo(input.transactions);
+  const fifoResult = computeFifo(transactions);
   let fifoInvested = 0;
   let fifoPricedInvested = 0;
   let fifoPricedValue = 0;
@@ -96,6 +105,8 @@ export function computePortfolio(input: ComputePortfolioInput): PortfolioSummary
   };
 
   return {
+    view,
+    hasGroupTransactions: hasGroupTrades(input.transactions),
     totalValueUsd,
     investedUsd,
     unrealizedPnlUsd,

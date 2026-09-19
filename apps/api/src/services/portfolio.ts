@@ -1,10 +1,10 @@
 import { asc, eq, gte, and } from 'drizzle-orm';
 import {
-  TRANSACTION_TYPES,
   computePortfolio,
   type FxRates,
   type PortfolioSnapshot,
   type PortfolioSummary,
+  type PortfolioView,
   type PriceQuote,
   type TransactionLike,
 } from '@crypto-tracker/shared';
@@ -13,28 +13,11 @@ import type { Env } from '../env';
 import { portfolioSnapshots, transactions, type TransactionRow } from '../db/schema';
 import { newId } from '../lib/ids';
 import type { PortfolioDeps } from '../routes/portfolio';
+import { toTransactionLike } from './transactions';
 
-function isOneOf<T extends string>(values: readonly T[], value: string): value is T {
-  return (values as readonly string[]).includes(value);
-}
-
-/** Projects a DB row down to the fields the portfolio math needs. */
+/** Projects a DB row down to the fields the portfolio math needs (owner share included). */
 export function rowToTransactionLike(row: TransactionRow): TransactionLike {
-  if (!isOneOf(TRANSACTION_TYPES, row.type)) {
-    throw new Error(`Unknown transaction type "${row.type}" for transaction ${row.id}`);
-  }
-  return {
-    id: row.id,
-    type: row.type,
-    coinId: row.coinId,
-    coinSymbol: row.coinSymbol,
-    coinName: row.coinName,
-    quantity: row.quantity,
-    pricePerUnitUsd: row.pricePerUnitUsd,
-    feeUsd: row.feeUsd,
-    occurredAt: row.occurredAt,
-    createdAt: row.createdAt,
-  };
+  return toTransactionLike(row);
 }
 
 /** Pure delegation seam: turns fetched transactions/prices/fx into a `PortfolioSummary`. */
@@ -43,17 +26,25 @@ export function summarize(
   prices: Readonly<Record<string, PriceQuote | undefined>>,
   fx: FxRates,
   pricesUpdatedAt: string | null,
+  view: PortfolioView = 'whole',
 ): PortfolioSummary {
-  return computePortfolio({ transactions: txs, prices, fx, pricesUpdatedAt });
+  return computePortfolio({ transactions: txs, prices, fx, pricesUpdatedAt, view });
 }
 
-/** Builds the `GET /api/portfolio` summary for a user from their stored transactions. */
-export async function buildPortfolio(
+/** Everything `GET /api/portfolio` needs, fetched once so both views can be built from it. */
+export interface PortfolioInputs {
+  txs: TransactionLike[];
+  prices: Readonly<Record<string, PriceQuote | undefined>>;
+  fx: FxRates;
+  pricesUpdatedAt: string | null;
+}
+
+export async function loadPortfolioInputs(
   env: Env,
   db: Database,
   userId: string,
   deps: PortfolioDeps,
-): Promise<PortfolioSummary> {
+): Promise<PortfolioInputs> {
   const rows = await db.query.transactions.findMany({
     where: eq(transactions.userId, userId),
   });
@@ -61,7 +52,7 @@ export async function buildPortfolio(
 
   if (txs.length === 0) {
     const fx = await deps.fx.getFxRates(env);
-    return summarize([], {}, fx, null);
+    return { txs, prices: {}, fx, pricesUpdatedAt: null };
   }
 
   const coinIds = [...new Set(txs.map((tx) => tx.coinId))];
@@ -69,7 +60,19 @@ export async function buildPortfolio(
     deps.prices.getPrices(env, coinIds),
     deps.fx.getFxRates(env),
   ]);
-  return summarize(txs, prices, fx, updatedAt);
+  return { txs, prices, fx, pricesUpdatedAt: updatedAt };
+}
+
+/** Builds the `GET /api/portfolio?view=` summary for a user from their stored transactions. */
+export async function buildPortfolio(
+  env: Env,
+  db: Database,
+  userId: string,
+  deps: PortfolioDeps,
+  view: PortfolioView = 'whole',
+): Promise<PortfolioSummary> {
+  const inputs = await loadPortfolioInputs(env, db, userId, deps);
+  return summarize(inputs.txs, inputs.prices, inputs.fx, inputs.pricesUpdatedAt, view);
 }
 
 /** Reduces `points` to at most `maxPoints`, always keeping the first and the last. Pure. */
@@ -113,21 +116,26 @@ export async function listSnapshots(
     takenAt: row.takenAt,
     totalValueUsd: row.totalValueUsd,
     investedUsd: row.investedUsd,
+    ownTotalValueUsd: row.ownTotalValueUsd ?? null,
+    ownInvestedUsd: row.ownInvestedUsd ?? null,
   }));
 }
 
-/** Inserts one snapshot row for a user at `takenAt`. */
+/** Inserts one snapshot row for a user at `takenAt`, holding both the whole and owner's-share totals. */
 export async function recordSnapshot(
   db: Database,
   userId: string,
-  summary: PortfolioSummary,
+  whole: PortfolioSummary,
+  mine: PortfolioSummary,
   takenAt: string,
 ): Promise<void> {
   await db.insert(portfolioSnapshots).values({
     id: newId(),
     userId,
     takenAt,
-    totalValueUsd: summary.totalValueUsd,
-    investedUsd: summary.investedUsd,
+    totalValueUsd: whole.totalValueUsd,
+    investedUsd: whole.investedUsd,
+    ownTotalValueUsd: mine.totalValueUsd,
+    ownInvestedUsd: mine.investedUsd,
   });
 }

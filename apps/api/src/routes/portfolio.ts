@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import {
+  PORTFOLIO_VIEWS,
   historyRangeSchema,
   rangeToSince,
   type PortfolioHistoryResponse,
+  type PortfolioView,
 } from '@crypto-tracker/shared';
 import { buildPortfolio, downsample, listSnapshots } from '../services/portfolio';
 import { ApiError } from '../lib/errors';
@@ -17,13 +19,24 @@ export interface PortfolioDeps {
   fx: FxProvider;
 }
 
+function parseView(raw: string | undefined): PortfolioView {
+  if (raw === undefined) return 'whole';
+  if ((PORTFOLIO_VIEWS as readonly string[]).includes(raw)) return raw as PortfolioView;
+  throw new ApiError(
+    400,
+    'VALIDATION_ERROR',
+    `view must be one of ${PORTFOLIO_VIEWS.join(', ')}, got "${raw}"`,
+  );
+}
+
 export function createPortfolioRoutes(deps: PortfolioDeps): Hono<AppEnv> {
   return new Hono<AppEnv>()
     .use(requireAuth)
     .get('/', async (c) => {
       const user = c.get('user');
       const db = c.get('db');
-      const summary = await buildPortfolio(c.get('env'), db, user.id, deps);
+      const view = parseView(c.req.query('view'));
+      const summary = await buildPortfolio(c.get('env'), db, user.id, deps, view);
       return c.json(summary);
     })
     .get('/history', async (c) => {

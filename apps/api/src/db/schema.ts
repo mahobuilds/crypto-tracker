@@ -53,6 +53,10 @@ export const transactions = pgTable(
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
     type: text('type').notNull(),
+    /** 'personal' | 'group'. */
+    scope: text('scope').notNull().default('personal'),
+    /** JSON-serialized `TransactionParticipant[]`; `[]` for personal trades. */
+    participants: text('participants').notNull().default('[]'),
     coinId: text('coin_id').notNull(),
     coinSymbol: text('coin_symbol').notNull(),
     coinName: text('coin_name').notNull(),
@@ -115,6 +119,9 @@ export const portfolioSnapshots = pgTable(
     takenAt: text('taken_at').notNull(),
     totalValueUsd: doublePrecision('total_value_usd').notNull(),
     investedUsd: doublePrecision('invested_usd').notNull(),
+    /** Owner's-share figures; null on rows written before group trades existed. */
+    ownTotalValueUsd: doublePrecision('own_total_value_usd'),
+    ownInvestedUsd: doublePrecision('own_invested_usd'),
   },
   (t) => [
     index('portfolio_snapshots_user_id_taken_at_idx').on(t.userId, t.takenAt),

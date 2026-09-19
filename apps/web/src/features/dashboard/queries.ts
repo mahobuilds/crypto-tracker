@@ -4,6 +4,7 @@ import type {
   HistoryRange,
   PortfolioHistoryResponse,
   PortfolioSummary,
+  PortfolioView,
 } from '@crypto-tracker/shared';
 import { apiFetch } from '@/lib/api';
 
@@ -11,10 +12,11 @@ export const portfolioQueryKey = ['portfolio'] as const;
 
 const HISTORY_STALE_TIME_MS = 5 * 60 * 1000;
 
-export function usePortfolio() {
+/** `whole` counts group trades in full; `mine` scales them to the owner's share. */
+export function usePortfolio(view: PortfolioView = 'whole') {
   return useQuery({
-    queryKey: portfolioQueryKey,
-    queryFn: () => apiFetch<PortfolioSummary>('/api/portfolio'),
+    queryKey: [...portfolioQueryKey, 'summary', view],
+    queryFn: () => apiFetch<PortfolioSummary>(`/api/portfolio?view=${view}`),
     refetchInterval: PRICE_REFRESH_INTERVAL_MS,
   });
 }
