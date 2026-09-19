@@ -80,12 +80,6 @@ Sign-in uses real Google sign-in through Supabase Auth (no local seed session); 
 
 ```
 crypto-tracker/
-├── docs/
-│   ├── PRD.md
-│   ├── TECH_STACK.md
-│   ├── DEPLOY.md
-│   ├── MIGRATION_SUPABASE.md
-│   └── briefs/
 ├── apps/
 │   ├── web/                # React PWA (built to dist/, served by the Node server)
 │   │   ├── public/
