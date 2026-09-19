@@ -116,13 +116,6 @@ crypto-tracker/
 └── pnpm-workspace.yaml
 ```
 
-## Documentation
-
-- [docs/PRD.md](docs/PRD.md) — product requirements
-- [docs/TECH_STACK.md](docs/TECH_STACK.md) — technical stack and architecture
-- [docs/DEPLOY.md](docs/DEPLOY.md) — deployment guide (Supabase, Google OAuth, Railway)
-- [docs/MIGRATION_SUPABASE.md](docs/MIGRATION_SUPABASE.md) — migration plan from the earlier architecture
-
 ## License
 
 Private project.
