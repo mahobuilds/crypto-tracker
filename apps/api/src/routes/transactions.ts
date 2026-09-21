@@ -5,10 +5,11 @@ import {
   type TransactionListResponse,
   type TransactionType,
 } from '@crypto-tracker/shared';
-import type { CoinResolver, FxProvider } from '../contracts';
+import type { CoinResolver, FxProvider, PriceProvider } from '../contracts';
 import { createImportRoutes } from './import';
 import { ApiError } from '../lib/errors';
 import { requireAuth } from '../middleware/auth';
+import { snapshotAfterChange } from '../services/portfolio';
 import {
   createTransaction,
   deleteTransaction,
@@ -22,6 +23,7 @@ import type { AppEnv } from '../types';
 export interface TransactionsDeps {
   fx: FxProvider;
   coins: CoinResolver;
+  prices: PriceProvider;
 }
 
 function isTransactionType(value: string): value is TransactionType {
@@ -72,6 +74,7 @@ export function createTransactionsRoutes(deps: TransactionsDeps): Hono<AppEnv> {
       const input = await parseInput(c);
       const fx = await deps.fx.getFxRates(c.get('env'));
       const transaction = await createTransaction(c.get('db'), c.get('user').id, input, fx);
+      await snapshotAfterChange(c.get('env'), c.get('db'), c.get('user').id, deps);
       return c.json(transaction, 201);
     })
     .put('/:id', async (c) => {
@@ -84,10 +87,12 @@ export function createTransactionsRoutes(deps: TransactionsDeps): Hono<AppEnv> {
         input,
         fx,
       );
+      await snapshotAfterChange(c.get('env'), c.get('db'), c.get('user').id, deps);
       return c.json(transaction);
     })
     .delete('/:id', async (c) => {
       await deleteTransaction(c.get('db'), c.get('user').id, c.req.param('id'));
+      await snapshotAfterChange(c.get('env'), c.get('db'), c.get('user').id, deps);
       return c.body(null, 204);
     })
     .route('/import', createImportRoutes(deps));

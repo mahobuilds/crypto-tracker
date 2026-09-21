@@ -36,7 +36,8 @@ function AddWalletButton({ onClick }: { onClick: () => void }) {
 
 /**
  * "All wallets | Main | Binance" pills, or a dropdown once there are too many wallets to fit.
- * With a single wallet only the "+" button shows, since there is nothing to switch between.
+ * A single wallet still shows as a pill so the user sees where their trades live; only an
+ * empty list (still loading) collapses to the "+" button.
  */
 export function WalletSwitcher({
   wallets,
@@ -52,7 +53,7 @@ export function WalletSwitcher({
   ];
   const selected = value ?? ALL;
   const handle = (next: string) => onChange(next === ALL ? null : next);
-  const showControl = wallets.length > 1;
+  const showControl = wallets.length > 0;
   const addButton = onAdd ? <AddWalletButton onClick={onAdd} /> : null;
 
   if (!showControl) {

@@ -357,7 +357,7 @@ export function HoldingsPage() {
     <>
       {header}
 
-      {selected.hasMultiple ? (
+      {selected.wallets.length > 0 ? (
         <div className="animate-rise">
           <WalletSwitcher
             wallets={selected.wallets}

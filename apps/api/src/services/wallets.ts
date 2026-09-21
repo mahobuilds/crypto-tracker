@@ -1,4 +1,4 @@
-import { and, asc, count, eq } from 'drizzle-orm';
+import { and, asc, count, eq, sql } from 'drizzle-orm';
 import {
   DEFAULT_WALLET_NAME,
   MAX_WALLETS_PER_USER,
@@ -22,7 +22,10 @@ export function rowToWallet(row: WalletRow, transactionCount: number): Wallet {
   };
 }
 
-async function listWalletRows(db: Database, userId: string): Promise<WalletRow[]> {
+/** A database handle or the transaction handle `db.transaction` hands its callback. */
+type Queryable = Database | Parameters<Parameters<Database['transaction']>[0]>[0];
+
+async function listWalletRows(db: Queryable, userId: string): Promise<WalletRow[]> {
   return db.query.wallets.findMany({
     where: eq(wallets.userId, userId),
     orderBy: [asc(wallets.createdAt), asc(wallets.name)],
@@ -42,7 +45,7 @@ async function countTransactionsByWallet(
   return new Map(rows.map((row) => [row.walletId, row.value]));
 }
 
-async function insertWallet(db: Database, userId: string, name: string): Promise<WalletRow> {
+async function insertWallet(db: Queryable, userId: string, name: string): Promise<WalletRow> {
   const now = nowIso();
   const row: WalletRow = { id: newId(), userId, name, createdAt: now, updatedAt: now };
   await db.insert(wallets).values(row);
@@ -50,27 +53,36 @@ async function insertWallet(db: Database, userId: string, name: string): Promise
 }
 
 /**
+ * The user's wallet rows, oldest first, creating the default wallet when there are none.
+ * The first dashboard load fires several requests at once (wallet list, portfolio, first
+ * trade), so creation is serialised per user with an advisory lock; otherwise each request
+ * would insert its own "Main wallet".
+ */
+async function ensureWalletRows(db: Database, userId: string): Promise<WalletRow[]> {
+  const existing = await listWalletRows(db, userId);
+  if (existing.length > 0) return existing;
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`);
+    const rows = await listWalletRows(tx, userId);
+    if (rows.length > 0) return rows;
+    return [await insertWallet(tx, userId, DEFAULT_WALLET_NAME)];
+  });
+}
+
+/**
  * The user's wallets, oldest first. A user with none gets the default wallet created on
  * the spot, so every caller can rely on at least one wallet existing.
  */
 export async function listWallets(db: Database, userId: string): Promise<Wallet[]> {
-  const rows = await listWalletRows(db, userId);
-  if (rows.length === 0) {
-    const created = await insertWallet(db, userId, DEFAULT_WALLET_NAME);
-    return [rowToWallet(created, 0)];
-  }
+  const rows = await ensureWalletRows(db, userId);
   const counts = await countTransactionsByWallet(db, userId);
   return rows.map((row) => rowToWallet(row, counts.get(row.id) ?? 0));
 }
 
 /** The wallet new transactions fall into when none is chosen: the oldest one. */
 export async function ensureDefaultWallet(db: Database, userId: string): Promise<WalletRow> {
-  const [first] = await db.query.wallets.findMany({
-    where: eq(wallets.userId, userId),
-    orderBy: [asc(wallets.createdAt), asc(wallets.name)],
-    limit: 1,
-  });
-  return first ?? insertWallet(db, userId, DEFAULT_WALLET_NAME);
+  const [first] = await ensureWalletRows(db, userId);
+  return first!;
 }
 
 export async function getWalletRow(db: Database, userId: string, id: string): Promise<WalletRow> {
@@ -112,7 +124,9 @@ export async function createWallet(
   userId: string,
   input: WalletInput,
 ): Promise<Wallet> {
-  const rows = await listWalletRows(db, userId);
+  // The default wallet always comes first, so a user's own wallets sit next to it rather
+  // than replacing it.
+  const rows = await ensureWalletRows(db, userId);
   if (rows.length >= MAX_WALLETS_PER_USER) {
     throw new ApiError(
       400,

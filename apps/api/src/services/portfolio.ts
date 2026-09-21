@@ -15,8 +15,10 @@ import type { Database } from '../db/client';
 import type { Env } from '../env';
 import { portfolioSnapshots, transactions, type TransactionRow } from '../db/schema';
 import { newId } from '../lib/ids';
+import { nowIso } from '../lib/time';
 import type { PortfolioDeps } from '../routes/portfolio';
 import { toTransactionLike } from './transactions';
+import { listWallets } from './wallets';
 
 /** Projects a DB row down to the fields the portfolio math needs (owner share included). */
 export function rowToTransactionLike(row: TransactionRow): TransactionLike {
@@ -195,6 +197,55 @@ export async function listSnapshots(
     ownTotalValueUsd: row.ownTotalValueUsd ?? null,
     ownInvestedUsd: row.ownInvestedUsd ?? null,
   }));
+}
+
+/**
+ * Writes the snapshot rows for one moment: the whole portfolio plus one per wallet id given.
+ * A wallet that no longer holds any trade still gets its row, so its chart drops to zero
+ * instead of freezing at the last value it had.
+ */
+export async function recordSnapshots(
+  db: Database,
+  userId: string,
+  inputs: PortfolioInputs,
+  walletIds: readonly string[],
+  takenAt: string,
+): Promise<void> {
+  const { txs, prices, fx, pricesUpdatedAt } = inputs;
+  for (const walletId of [null, ...walletIds]) {
+    const whole = summarize(txs, prices, fx, pricesUpdatedAt, 'whole', walletId);
+    const mine = summarize(txs, prices, fx, pricesUpdatedAt, 'mine', walletId);
+    await recordSnapshot(db, userId, whole, mine, takenAt, walletId);
+  }
+}
+
+/**
+ * Snapshots taken right after a trade is added, edited, moved or removed, so every wallet's
+ * P&L chart shows the change now rather than at the next hourly run. A failure is logged and
+ * swallowed: the trade itself is already saved and the hourly job catches up.
+ */
+export async function snapshotAfterChange(
+  env: Env,
+  db: Database,
+  userId: string,
+  deps: PortfolioDeps,
+): Promise<void> {
+  try {
+    const [inputs, wallets] = await Promise.all([
+      loadPortfolioInputs(env, db, userId, deps),
+      listWallets(db, userId),
+    ]);
+    await recordSnapshots(
+      db,
+      userId,
+      inputs,
+      wallets.map((wallet) => wallet.id),
+      nowIso(),
+    );
+  } catch (cause) {
+    const reason = cause instanceof Error ? cause.message : String(cause);
+    console.error(`[portfolio-snapshot] after change failed for user ${userId}: ${reason}`);
+  }
 }
 
 /**

@@ -60,7 +60,7 @@ export function createApp(env: Env, db: Database): Hono<AppEnv> {
   app.route('/api/health', healthRoutes);
   app.route('/api/me', meRoutes);
   app.route('/api/settings', createSettingsRoutes());
-  app.route('/api/transactions', createTransactionsRoutes({ fx: marketData, coins: marketData }));
+  app.route('/api/transactions', createTransactionsRoutes({ fx: marketData, coins: marketData, prices: marketData }));
   app.route('/api/prices', createPricesRoutes({ prices: marketData, fx: marketData }));
   app.route('/api/fx', createFxRoutes({ fx: marketData }));
   app.route('/api/coins', createCoinsRoutes({ coins: marketData }));

@@ -41,7 +41,7 @@ export interface SelectedWallet {
   wallet: Wallet | null;
   setWalletId: (id: WalletSelection) => void;
   isPending: boolean;
-  /** True once the user has more than one wallet, so a switcher is worth showing. */
+  /** True once the user has more than one wallet, so a per-wallet breakdown is worth showing. */
   hasMultiple: boolean;
 }
 

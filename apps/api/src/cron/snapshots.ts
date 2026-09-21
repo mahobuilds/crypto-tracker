@@ -3,7 +3,7 @@ import { createDb } from '../db/client';
 import type { Env } from '../env';
 import { transactions } from '../db/schema';
 import { nowIso } from '../lib/time';
-import { loadPortfolioInputs, recordSnapshot, summarize } from '../services/portfolio';
+import { loadPortfolioInputs, recordSnapshots } from '../services/portfolio';
 import type { PortfolioDeps } from '../routes/portfolio';
 import type { CronJob } from './index';
 
@@ -27,17 +27,8 @@ export function createSnapshotJob(deps: PortfolioDeps): CronJob {
 
       const results = await Promise.allSettled(
         rows.map(async ({ userId }) => {
-          const { txs, prices, fx, pricesUpdatedAt } = await loadPortfolioInputs(
-            env,
-            db,
-            userId,
-            deps,
-          );
-          for (const walletId of [null, ...walletIdsOf(txs)]) {
-            const whole = summarize(txs, prices, fx, pricesUpdatedAt, 'whole', walletId);
-            const mine = summarize(txs, prices, fx, pricesUpdatedAt, 'mine', walletId);
-            await recordSnapshot(db, userId, whole, mine, takenAt, walletId);
-          }
+          const inputs = await loadPortfolioInputs(env, db, userId, deps);
+          await recordSnapshots(db, userId, inputs, walletIdsOf(inputs.txs), takenAt);
         }),
       );
 

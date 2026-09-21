@@ -201,7 +201,7 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
     value: wallet.id,
     label: wallet.name,
   }));
-  const showWalletField = wallets.length > 1;
+  const showWalletField = wallets.length > 0;
 
   const quantityNum = Number(form.quantity);
   const priceNum = Number(form.pricePerUnit);

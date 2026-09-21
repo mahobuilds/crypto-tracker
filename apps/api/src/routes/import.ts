@@ -5,7 +5,7 @@ import {
   type ImportRequest,
   type ImportResponse,
 } from '@crypto-tracker/shared';
-import type { CoinResolver, FxProvider } from '../contracts';
+import type { CoinResolver, FxProvider, PriceProvider } from '../contracts';
 import { getOrCreateSettings } from '../db/settings';
 import { transactions } from '../db/schema';
 import { ApiError } from '../lib/errors';
@@ -13,6 +13,7 @@ import { newId } from '../lib/ids';
 import { nowIso } from '../lib/time';
 import { requireAuth } from '../middleware/auth';
 import { resolveRows } from '../services/import';
+import { snapshotAfterChange } from '../services/portfolio';
 import { resolveWalletId } from '../services/wallets';
 import {
   assertTimelineValid,
@@ -27,6 +28,7 @@ import type { AppEnv } from '../types';
 export interface ImportRoutesDeps {
   fx: FxProvider;
   coins: CoinResolver;
+  prices: PriceProvider;
 }
 
 const MAX_CSV_BYTES = 1_000_000;
@@ -98,6 +100,7 @@ export function createImportRoutes(deps: ImportRoutesDeps): Hono<AppEnv> {
     for (const row of prepared) {
       await db.insert(transactions).values(row);
     }
+    if (prepared.length > 0) await snapshotAfterChange(c.get('env'), db, userId, deps);
 
     const body: ImportResponse = {
       mode,
