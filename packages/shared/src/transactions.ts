@@ -75,6 +75,7 @@ export const transactionInputSchema = z
     type: z.enum(TRANSACTION_TYPES),
     scope: z.enum(TRANSACTION_SCOPES).default('personal'),
     participants: z.array(participantSchema).max(50).default([]),
+    walletId: trimmedString(100).optional(),
     coinId: coinIdSchema,
     coinSymbol: coinSymbolSchema,
     coinName: coinNameSchema,

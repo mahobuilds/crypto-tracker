@@ -18,6 +18,8 @@
   "dropzoneHint": "أو اسحبه إلى هنا",
   "dropzoneSelected": "تم اختيار: {{name}}",
   "pasteLabel": "أو الصق نص CSV",
+  "wallet": "الاستيراد إلى المحفظة",
+  "walletHint": "كل صف في هذا الملف يُضاف إلى المحفظة التي تختارها هنا.",
   "pastePlaceholder": "date,type,coin,quantity,price,currency,fee,note",
   "previewButton": "معاينة الاستيراد",
   "startOver": "البدء من جديد",
@@ -36,6 +38,7 @@
     "sell": "بيع"
   },
   "fixErrorsHint": "صحّح الأخطاء في ملفك، ثم ارفعه مرة أخرى للاستيراد.",
+  "intoWallet": "ستُضاف هذه الصفوف إلى {{name}}.",
   "successTitle": "اكتمل الاستيراد",
   "viewTransactions": "عرض المعاملات",
   "stepOf": "الخطوة {{step}} من {{total}}",

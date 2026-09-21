@@ -16,6 +16,9 @@ import type {
   PricesResponse,
   Transaction,
   TransactionListResponse,
+  Wallet,
+  WalletBreakdownResponse,
+  WalletListResponse,
 } from '@crypto-tracker/shared';
 import { DEFAULT_SETTINGS } from '@crypto-tracker/shared';
 
@@ -50,6 +53,15 @@ const now = Date.now();
 const iso = (msAgo: number) => new Date(now - msAgo).toISOString();
 const DAY = 24 * 60 * 60 * 1000;
 
+const wallets: Wallet[] = [
+  wallet('w1', 'Main wallet', iso(90 * DAY)),
+  wallet('w2', 'Binance', iso(60 * DAY)),
+];
+
+function wallet(id: string, name: string, createdAt: string): Wallet {
+  return { id, name, transactionCount: 0, createdAt, updatedAt: createdAt };
+}
+
 const transactions: Transaction[] = [
   tx('t1', 'buy', 'ethereum', 'ETH', 'Ethereum', 2, 2000, 'USD', 0, iso(15 * DAY), null),
   tx(
@@ -70,6 +82,9 @@ const transactions: Transaction[] = [
   tx('t5', 'buy', 'bitcoin', 'BTC', 'Bitcoin', 0.5, 60000, 'USD', 10, iso(67 * DAY), 'First buy'),
   tx('t6', 'buy', 'cardano', 'ADA', 'Cardano', 3200, 0.62, 'USD', 0, iso(74 * DAY), null),
 ];
+// The SOL and LINK buys sit in the second wallet; everything else is in the main one.
+transactions[1]!.walletId = 'w2';
+transactions[3]!.walletId = 'w2';
 transactions[1]!.scope = 'group';
 transactions[1]!.participants = [
   { name: mockUser.name, sharePct: 50, isMe: true },
@@ -95,6 +110,7 @@ function tx(
     type,
     scope: 'personal',
     participants: [],
+    walletId: 'w1',
     coinId,
     coinSymbol,
     coinName,
@@ -139,17 +155,25 @@ function quote(coinId: string, usd: number, change24hPct: number) {
 }
 
 const holdingsSpec = [
-  ['bitcoin', 'BTC', 'Bitcoin', 0.3, 60020],
-  ['ethereum', 'ETH', 'Ethereum', 2, 2000],
-  ['solana', 'SOL', 'Solana', 25, 142.2],
-  ['chainlink', 'LINK', 'Chainlink', 120, 15.2],
-  ['cardano', 'ADA', 'Cardano', 3200, 0.62],
+  ['bitcoin', 'BTC', 'Bitcoin', 0.3, 60020, 'w1'],
+  ['ethereum', 'ETH', 'Ethereum', 2, 2000, 'w1'],
+  ['solana', 'SOL', 'Solana', 25, 142.2, 'w2'],
+  ['chainlink', 'LINK', 'Chainlink', 120, 15.2, 'w2'],
+  ['cardano', 'ADA', 'Cardano', 3200, 0.62, 'w1'],
 ] as const;
 
-function portfolio(view: PortfolioView): PortfolioSummary {
+function walletsWithCounts(): Wallet[] {
+  return wallets.map((w) => ({
+    ...w,
+    transactionCount: transactions.filter((t) => t.walletId === w.id).length,
+  }));
+}
+
+function portfolio(view: PortfolioView, walletId: string | null = null): PortfolioSummary {
   // In mock data only the SOL buy is a group trade, at a 50% owner share.
   const ownShare = (coinId: string) => (view === 'mine' && coinId === 'solana' ? 0.5 : 1);
-  const holdings = holdingsSpec.map(([coinId, coinSymbol, coinName, wholeQty, averageCostUsd]) => {
+  const inWallet = holdingsSpec.filter(([, , , , , w]) => walletId === null || w === walletId);
+  const holdings = inWallet.map(([coinId, coinSymbol, coinName, wholeQty, averageCostUsd]) => {
     const price = prices.prices[coinId]?.usd ?? null;
     const quantity = wholeQty * ownShare(coinId);
     const investedUsd = quantity * averageCostUsd;
@@ -177,26 +201,34 @@ function portfolio(view: PortfolioView): PortfolioSummary {
   }
   holdings.sort((a, b) => (b.currentValueUsd ?? 0) - (a.currentValueUsd ?? 0));
   const unrealizedPnlUsd = totalValueUsd - investedUsd;
+  // The one realized sale (BTC) lives in the main wallet.
+  const realized = walletId === null || walletId === 'w1';
+  const realizedPnlUsd = realized ? 4168.11 : 0;
+  const fifoShift = realized ? 255.71 : 0;
   return {
     view,
-    hasGroupTransactions: true,
+    walletId,
+    hasGroupTransactions: walletId !== 'w1',
     totalValueUsd,
     investedUsd,
     unrealizedPnlUsd,
-    unrealizedPnlPct: (unrealizedPnlUsd / investedUsd) * 100,
-    realizedPnlUsd: 4168.11,
+    unrealizedPnlPct: investedUsd > 0 ? (unrealizedPnlUsd / investedUsd) * 100 : 0,
+    realizedPnlUsd,
     methods: {
       average: {
-        realizedPnlUsd: 4168.11,
+        realizedPnlUsd,
         investedUsd,
         unrealizedPnlUsd,
-        unrealizedPnlPct: (unrealizedPnlUsd / investedUsd) * 100,
+        unrealizedPnlPct: investedUsd > 0 ? (unrealizedPnlUsd / investedUsd) * 100 : null,
       },
       fifo: {
-        realizedPnlUsd: 3912.4,
-        investedUsd: investedUsd + 255.71,
-        unrealizedPnlUsd: unrealizedPnlUsd - 255.71,
-        unrealizedPnlPct: ((unrealizedPnlUsd - 255.71) / (investedUsd + 255.71)) * 100,
+        realizedPnlUsd: realized ? 3912.4 : 0,
+        investedUsd: investedUsd + fifoShift,
+        unrealizedPnlUsd: unrealizedPnlUsd - fifoShift,
+        unrealizedPnlPct:
+          investedUsd > 0
+            ? ((unrealizedPnlUsd - fifoShift) / (investedUsd + fifoShift)) * 100
+            : null,
       },
     },
     holdings,
@@ -205,12 +237,34 @@ function portfolio(view: PortfolioView): PortfolioSummary {
   };
 }
 
-function history(range: string): PortfolioHistoryResponse {
+function walletBreakdown(view: PortfolioView): WalletBreakdownResponse {
+  return {
+    view,
+    wallets: walletsWithCounts().map((w) => {
+      const summary = portfolio(view, w.id);
+      return {
+        walletId: w.id,
+        name: w.name,
+        transactionCount: w.transactionCount,
+        holdingsCount: summary.holdings.length,
+        totalValueUsd: summary.totalValueUsd,
+        investedUsd: summary.investedUsd,
+        unrealizedPnlUsd: summary.unrealizedPnlUsd,
+        unrealizedPnlPct: summary.unrealizedPnlPct,
+        realizedPnlUsd: summary.realizedPnlUsd,
+      };
+    }),
+    fx,
+    pricesUpdatedAt: prices.updatedAt,
+  };
+}
+
+function history(range: string, walletId: string | null): PortfolioHistoryResponse {
   const spanDays = { '24h': 1, '7d': 7, '30d': 30, '90d': 90, '1y': 365, all: 120 }[range] ?? 30;
   const count = Math.min(240, spanDays <= 1 ? 24 : spanDays * 4);
-  const summary = portfolio('whole');
-  const mine = portfolio('mine');
-  const ownRatio = mine.investedUsd / summary.investedUsd;
+  const summary = portfolio('whole', walletId);
+  const mine = portfolio('mine', walletId);
+  const ownRatio = summary.investedUsd > 0 ? mine.investedUsd / summary.investedUsd : 1;
   const invested = summary.investedUsd;
   const finalPnl = summary.unrealizedPnlUsd;
   const points = [];
@@ -306,10 +360,35 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
     Object.assign(me.settings, init.json as object);
     return me.settings;
   }
-  if (p === '/api/portfolio') {
-    return portfolio(url.searchParams.get('view') === 'mine' ? 'mine' : 'whole');
+  const view: PortfolioView = url.searchParams.get('view') === 'mine' ? 'mine' : 'whole';
+  const walletParam = url.searchParams.get('walletId') || null;
+  if (p === '/api/portfolio') return portfolio(view, walletParam);
+  if (p === '/api/portfolio/wallets') return walletBreakdown(view);
+  if (p === '/api/portfolio/history') {
+    return history(url.searchParams.get('range') ?? '30d', walletParam);
   }
-  if (p === '/api/portfolio/history') return history(url.searchParams.get('range') ?? '30d');
+  if (p === '/api/wallets' && method === 'GET') {
+    return { wallets: walletsWithCounts() } satisfies WalletListResponse;
+  }
+  if (p === '/api/wallets' && method === 'POST') {
+    const { name } = init.json as { name: string };
+    const created = wallet(`w${Date.now()}`, name, iso(0));
+    wallets.push(created);
+    return created;
+  }
+  if (p.startsWith('/api/wallets/')) {
+    const id = p.split('/').pop();
+    const index = wallets.findIndex((w) => w.id === id);
+    if (method === 'DELETE') {
+      if (index >= 0) wallets.splice(index, 1);
+      return undefined;
+    }
+    if (method === 'PUT' && index >= 0) {
+      const updated = { ...wallets[index]!, ...(init.json as { name: string }), updatedAt: iso(0) };
+      wallets[index] = updated;
+      return updated;
+    }
+  }
   if (p === '/api/prices') {
     const ids = (url.searchParams.get('ids') ?? '').split(',').filter(Boolean);
     const subset: PricesResponse['prices'] = {};
@@ -333,7 +412,10 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
     const type = url.searchParams.get('type');
     return {
       transactions: transactions.filter(
-        (t) => (!coinId || t.coinId === coinId) && (!type || t.type === type),
+        (t) =>
+          (!coinId || t.coinId === coinId) &&
+          (!type || t.type === type) &&
+          (!walletParam || t.walletId === walletParam),
       ),
     } satisfies TransactionListResponse;
   }
@@ -354,6 +436,7 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
     );
     created.scope = input.scope;
     created.participants = input.participants;
+    created.walletId = input.walletId ?? wallets[0]?.id ?? 'w1';
     transactions.unshift(created);
     return created;
   }
@@ -380,6 +463,7 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
           type: 'buy',
           scope: 'personal',
           participants: [],
+          walletId: 'w1',
           coinId: 'ethereum',
           coinSymbol: 'ETH',
           coinName: 'Ethereum',

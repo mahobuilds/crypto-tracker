@@ -15,6 +15,8 @@ export type TransactionLike = Pick<
 > & {
   /** Owner's share of the trade in percent (1-100). Missing means 100 (a personal trade). */
   ownerSharePct?: number;
+  /** Wallet the trade sits in. Sells are checked against what that wallet holds. */
+  walletId?: string;
 };
 
 /**

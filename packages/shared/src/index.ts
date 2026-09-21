@@ -4,6 +4,7 @@ export * from './csv';
 export * from './settings';
 export * from './transactions';
 export * from './alerts';
+export * from './wallets';
 export * from './push';
 export * from './history';
 export * from './portfolio';

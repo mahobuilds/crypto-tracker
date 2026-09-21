@@ -1,4 +1,4 @@
-import { asc, eq, gte, and } from 'drizzle-orm';
+import { asc, eq, gte, and, isNull } from 'drizzle-orm';
 import {
   computePortfolio,
   type FxRates,
@@ -7,6 +7,9 @@ import {
   type PortfolioView,
   type PriceQuote,
   type TransactionLike,
+  type Wallet,
+  type WalletBreakdownResponse,
+  type WalletValuation,
 } from '@crypto-tracker/shared';
 import type { Database } from '../db/client';
 import type { Env } from '../env';
@@ -20,15 +23,34 @@ export function rowToTransactionLike(row: TransactionRow): TransactionLike {
   return toTransactionLike(row);
 }
 
-/** Pure delegation seam: turns fetched transactions/prices/fx into a `PortfolioSummary`. */
+/** Transactions of one wallet, or all of them when `walletId` is null. Pure. */
+export function filterByWallet(
+  txs: readonly TransactionLike[],
+  walletId: string | null,
+): TransactionLike[] {
+  return walletId === null ? [...txs] : txs.filter((tx) => tx.walletId === walletId);
+}
+
+/**
+ * Pure delegation seam: turns fetched transactions/prices/fx into a `PortfolioSummary`.
+ * With a `walletId`, only that wallet's trades are counted.
+ */
 export function summarize(
   txs: readonly TransactionLike[],
   prices: Readonly<Record<string, PriceQuote | undefined>>,
   fx: FxRates,
   pricesUpdatedAt: string | null,
   view: PortfolioView = 'whole',
+  walletId: string | null = null,
 ): PortfolioSummary {
-  return computePortfolio({ transactions: txs, prices, fx, pricesUpdatedAt, view });
+  return computePortfolio({
+    transactions: filterByWallet(txs, walletId),
+    prices,
+    fx,
+    pricesUpdatedAt,
+    view,
+    walletId,
+  });
 }
 
 /** Everything `GET /api/portfolio` needs, fetched once so both views can be built from it. */
@@ -63,16 +85,64 @@ export async function loadPortfolioInputs(
   return { txs, prices, fx, pricesUpdatedAt: updatedAt };
 }
 
-/** Builds the `GET /api/portfolio?view=` summary for a user from their stored transactions. */
+/** Builds the `GET /api/portfolio?view=&walletId=` summary for a user from their stored transactions. */
 export async function buildPortfolio(
   env: Env,
   db: Database,
   userId: string,
   deps: PortfolioDeps,
   view: PortfolioView = 'whole',
+  walletId: string | null = null,
 ): Promise<PortfolioSummary> {
   const inputs = await loadPortfolioInputs(env, db, userId, deps);
-  return summarize(inputs.txs, inputs.prices, inputs.fx, inputs.pricesUpdatedAt, view);
+  return summarize(inputs.txs, inputs.prices, inputs.fx, inputs.pricesUpdatedAt, view, walletId);
+}
+
+/** Values each wallet on its own from inputs fetched once. Pure. */
+export function breakdownByWallet(
+  wallets: readonly Wallet[],
+  inputs: PortfolioInputs,
+  view: PortfolioView = 'whole',
+): WalletValuation[] {
+  return wallets.map((wallet) => {
+    const summary = summarize(
+      inputs.txs,
+      inputs.prices,
+      inputs.fx,
+      inputs.pricesUpdatedAt,
+      view,
+      wallet.id,
+    );
+    return {
+      walletId: wallet.id,
+      name: wallet.name,
+      transactionCount: wallet.transactionCount,
+      holdingsCount: summary.holdings.length,
+      totalValueUsd: summary.totalValueUsd,
+      investedUsd: summary.investedUsd,
+      unrealizedPnlUsd: summary.unrealizedPnlUsd,
+      unrealizedPnlPct: summary.unrealizedPnlPct,
+      realizedPnlUsd: summary.realizedPnlUsd,
+    };
+  });
+}
+
+/** Builds the `GET /api/portfolio/wallets?view=` response. */
+export async function buildWalletBreakdown(
+  env: Env,
+  db: Database,
+  userId: string,
+  deps: PortfolioDeps,
+  wallets: readonly Wallet[],
+  view: PortfolioView = 'whole',
+): Promise<WalletBreakdownResponse> {
+  const inputs = await loadPortfolioInputs(env, db, userId, deps);
+  return {
+    view,
+    wallets: breakdownByWallet(wallets, inputs, view),
+    fx: inputs.fx,
+    pricesUpdatedAt: inputs.pricesUpdatedAt,
+  };
 }
 
 /** Reduces `points` to at most `maxPoints`, always keeping the first and the last. Pure. */
@@ -97,19 +167,25 @@ export function downsample(
   return result;
 }
 
-/** All snapshots for a user, ordered oldest to newest, optionally since a given time. */
+/**
+ * Snapshots for a user, ordered oldest to newest, optionally since a given time. `walletId`
+ * null returns the whole-portfolio series; a wallet id returns that wallet's own series.
+ */
 export async function listSnapshots(
   db: Database,
   userId: string,
   since: Date | null,
+  walletId: string | null = null,
 ): Promise<PortfolioSnapshot[]> {
+  const conditions = [
+    eq(portfolioSnapshots.userId, userId),
+    walletId === null
+      ? isNull(portfolioSnapshots.walletId)
+      : eq(portfolioSnapshots.walletId, walletId),
+  ];
+  if (since) conditions.push(gte(portfolioSnapshots.takenAt, since.toISOString()));
   const rows = await db.query.portfolioSnapshots.findMany({
-    where: since
-      ? and(
-          eq(portfolioSnapshots.userId, userId),
-          gte(portfolioSnapshots.takenAt, since.toISOString()),
-        )
-      : eq(portfolioSnapshots.userId, userId),
+    where: and(...conditions),
     orderBy: asc(portfolioSnapshots.takenAt),
   });
   return rows.map((row) => ({
@@ -121,17 +197,22 @@ export async function listSnapshots(
   }));
 }
 
-/** Inserts one snapshot row for a user at `takenAt`, holding both the whole and owner's-share totals. */
+/**
+ * Inserts one snapshot row for a user at `takenAt`, holding both the whole and owner's-share
+ * totals. `walletId` null is the whole-portfolio row; a wallet id is that wallet's row.
+ */
 export async function recordSnapshot(
   db: Database,
   userId: string,
   whole: PortfolioSummary,
   mine: PortfolioSummary,
   takenAt: string,
+  walletId: string | null = null,
 ): Promise<void> {
   await db.insert(portfolioSnapshots).values({
     id: newId(),
     userId,
+    walletId,
     takenAt,
     totalValueUsd: whole.totalValueUsd,
     investedUsd: whole.investedUsd,

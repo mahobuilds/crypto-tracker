@@ -10,6 +10,7 @@ import { PricesPage } from '@/features/prices';
 import { SettingsPage } from '@/features/settings';
 import { HoldingsPage } from '@/features/holdings';
 import { TransactionsPage } from '@/features/transactions';
+import { WalletsPage } from '@/features/wallets';
 
 /**
  * Feature pages are added here at integration, e.g.
@@ -22,6 +23,7 @@ export const featureRoutes: RouteObject[] = [
   { path: 'import', element: <ImportPage /> },
   { path: 'prices', element: <PricesPage /> },
   { path: 'alerts', element: <AlertsPage /> },
+  { path: 'wallets', element: <WalletsPage /> },
   { path: 'settings', element: <SettingsPage /> },
 ];
 

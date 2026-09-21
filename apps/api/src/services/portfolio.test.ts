@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { PortfolioSnapshot } from '@crypto-tracker/shared';
 import type { TransactionRow } from '../db/schema';
-import { downsample, rowToTransactionLike, summarize } from './portfolio';
+import {
+  breakdownByWallet,
+  downsample,
+  filterByWallet,
+  rowToTransactionLike,
+  summarize,
+} from './portfolio';
 
 function row(overrides: Partial<TransactionRow> = {}): TransactionRow {
   return {
@@ -10,6 +16,7 @@ function row(overrides: Partial<TransactionRow> = {}): TransactionRow {
     type: 'buy',
     scope: 'personal',
     participants: '[]',
+    walletId: 'wallet-1',
     coinId: 'bitcoin',
     coinSymbol: 'BTC',
     coinName: 'Bitcoin',
@@ -52,6 +59,7 @@ describe('rowToTransactionLike', () => {
       occurredAt: '2024-06-01T00:00:00.000Z',
       createdAt: '2024-06-01T00:00:00.000Z',
       ownerSharePct: 100,
+      walletId: 'wallet-1',
     });
   });
 
@@ -131,5 +139,79 @@ describe('summarize', () => {
     expect(summary.unrealizedPnlUsd).toBeCloseTo(100);
     expect(summary.fx).toBe(fx);
     expect(summary.pricesUpdatedAt).toBe('2024-06-01T00:00:00.000Z');
+  });
+});
+
+describe('filterByWallet', () => {
+  const txs = [
+    rowToTransactionLike(row({ id: 'a', walletId: 'w1' })),
+    rowToTransactionLike(row({ id: 'b', walletId: 'w2' })),
+    rowToTransactionLike(row({ id: 'c', walletId: 'w1' })),
+  ];
+
+  it('returns every transaction for the whole portfolio', () => {
+    expect(filterByWallet(txs, null).map((tx) => tx.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('keeps only the chosen wallet', () => {
+    expect(filterByWallet(txs, 'w1').map((tx) => tx.id)).toEqual(['a', 'c']);
+  });
+
+  it('values one wallet on its own and echoes the wallet id', () => {
+    const prices = {
+      bitcoin: {
+        coinId: 'bitcoin',
+        usd: 200,
+        eur: 0,
+        sar: 0,
+        try: 0,
+        change24hPct: 0,
+        updatedAt: '',
+      },
+    };
+    const fx = { base: 'USD' as const, rates: { USD: 1, EUR: 1, SAR: 1, TRY: 1 }, updatedAt: '' };
+    const whole = summarize(txs, prices, fx, null);
+    const one = summarize(txs, prices, fx, null, 'whole', 'w2');
+    expect(whole.walletId).toBeNull();
+    expect(one.walletId).toBe('w2');
+    expect(whole.totalValueUsd).toBe(1200);
+    expect(one.totalValueUsd).toBe(400);
+  });
+});
+
+describe('breakdownByWallet', () => {
+  it('values every wallet from inputs fetched once, empty wallets included', () => {
+    const txs = [
+      rowToTransactionLike(row({ id: 'a', walletId: 'w1', quantity: 1 })),
+      rowToTransactionLike(row({ id: 'b', walletId: 'w2', quantity: 3 })),
+    ];
+    const prices = {
+      bitcoin: {
+        coinId: 'bitcoin',
+        usd: 200,
+        eur: 0,
+        sar: 0,
+        try: 0,
+        change24hPct: 0,
+        updatedAt: '',
+      },
+    };
+    const fx = { base: 'USD' as const, rates: { USD: 1, EUR: 1, SAR: 1, TRY: 1 }, updatedAt: '' };
+    const wallet = (id: string, name: string, transactionCount: number) => ({
+      id,
+      name,
+      transactionCount,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    });
+    const result = breakdownByWallet(
+      [wallet('w1', 'Main', 1), wallet('w2', 'Ledger', 1), wallet('w3', 'Empty', 0)],
+      { txs, prices, fx, pricesUpdatedAt: null },
+    );
+    expect(result.map((w) => [w.name, w.totalValueUsd, w.holdingsCount])).toEqual([
+      ['Main', 200, 1],
+      ['Ledger', 600, 1],
+      ['Empty', 0, 0],
+    ]);
   });
 });

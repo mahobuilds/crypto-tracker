@@ -5,6 +5,7 @@ import type {
   PortfolioHistoryResponse,
   PortfolioSummary,
   PortfolioView,
+  WalletBreakdownResponse,
 } from '@crypto-tracker/shared';
 import { apiFetch } from '@/lib/api';
 
@@ -12,19 +13,38 @@ export const portfolioQueryKey = ['portfolio'] as const;
 
 const HISTORY_STALE_TIME_MS = 5 * 60 * 1000;
 
-/** `whole` counts group trades in full; `mine` scales them to the owner's share. */
-export function usePortfolio(view: PortfolioView = 'whole') {
+function withWallet(path: string, walletId: string | null): string {
+  return walletId === null ? path : `${path}&walletId=${encodeURIComponent(walletId)}`;
+}
+
+/**
+ * `whole` counts group trades in full; `mine` scales them to the owner's share.
+ * `walletId` narrows the figures to one wallet; null is every wallet together.
+ */
+export function usePortfolio(view: PortfolioView = 'whole', walletId: string | null = null) {
   return useQuery({
-    queryKey: [...portfolioQueryKey, 'summary', view],
-    queryFn: () => apiFetch<PortfolioSummary>(`/api/portfolio?view=${view}`),
+    queryKey: [...portfolioQueryKey, 'summary', view, walletId],
+    queryFn: () => apiFetch<PortfolioSummary>(withWallet(`/api/portfolio?view=${view}`, walletId)),
     refetchInterval: PRICE_REFRESH_INTERVAL_MS,
   });
 }
 
-export function usePortfolioHistory(range: HistoryRange) {
+export function usePortfolioHistory(range: HistoryRange, walletId: string | null = null) {
   return useQuery({
-    queryKey: [...portfolioQueryKey, 'history', range],
-    queryFn: () => apiFetch<PortfolioHistoryResponse>(`/api/portfolio/history?range=${range}`),
+    queryKey: [...portfolioQueryKey, 'history', range, walletId],
+    queryFn: () =>
+      apiFetch<PortfolioHistoryResponse>(
+        withWallet(`/api/portfolio/history?range=${range}`, walletId),
+      ),
     staleTime: HISTORY_STALE_TIME_MS,
+  });
+}
+
+/** Every wallet valued on its own, in one request. */
+export function useWalletBreakdown(view: PortfolioView = 'whole') {
+  return useQuery({
+    queryKey: [...portfolioQueryKey, 'wallets', view],
+    queryFn: () => apiFetch<WalletBreakdownResponse>(`/api/portfolio/wallets?view=${view}`),
+    refetchInterval: PRICE_REFRESH_INTERVAL_MS,
   });
 }

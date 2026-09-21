@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import {
   CURRENCIES,
   CURRENCY_SYMBOLS,
@@ -45,6 +46,7 @@ function SettingRow({
 
 export function SettingsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user, settings, updateSettings, isSaving } = useSettings();
   const [lastPatch, setLastPatch] = useState<Partial<Settings> | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -183,9 +185,31 @@ export function SettingsPage() {
 
       <Panel
         flush
-        title={t('settings.alertsTitle')}
+        title={t('settings.walletsTitle')}
         className="animate-rise"
         style={{ '--i': 3 } as React.CSSProperties}
+      >
+        <ListGroup className="pb-2">
+          <ListRow
+            multiline
+            onPress={() => void navigate('/wallets')}
+            leading={
+              <span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent">
+                <Icon.Wallet />
+              </span>
+            }
+            title={t('settings.wallets')}
+            subtitle={t('settings.walletsHint')}
+            trailing={<Icon.CaretRight size={18} className="text-ink-3 rtl:-scale-x-100" />}
+          />
+        </ListGroup>
+      </Panel>
+
+      <Panel
+        flush
+        title={t('settings.alertsTitle')}
+        className="animate-rise"
+        style={{ '--i': 4 } as React.CSSProperties}
       >
         <ListGroup className="pb-2">
           <SettingRow
@@ -207,7 +231,7 @@ export function SettingsPage() {
         flush
         title={t('settings.chartsTitle')}
         className="animate-rise"
-        style={{ '--i': 4 } as React.CSSProperties}
+        style={{ '--i': 5 } as React.CSSProperties}
       >
         <ListGroup className="pb-2">
           <SettingRow
@@ -263,7 +287,7 @@ export function SettingsPage() {
 
       <div
         className="animate-rise mt-2 flex flex-col items-center gap-3"
-        style={{ '--i': 5 } as React.CSSProperties}
+        style={{ '--i': 6 } as React.CSSProperties}
       >
         <Button
           variant="danger"

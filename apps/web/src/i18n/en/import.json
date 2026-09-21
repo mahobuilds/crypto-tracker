@@ -18,6 +18,8 @@
   "dropzoneHint": "or drag it here",
   "dropzoneSelected": "Selected: {{name}}",
   "pasteLabel": "Or paste CSV text",
+  "wallet": "Import into wallet",
+  "walletHint": "Every row in this file goes into the wallet you pick here.",
   "pastePlaceholder": "date,type,coin,quantity,price,currency,fee,note",
   "previewButton": "Preview import",
   "startOver": "Start over",
@@ -36,6 +38,7 @@
     "sell": "Sell"
   },
   "fixErrorsHint": "Fix the errors in your file, then upload it again to import.",
+  "intoWallet": "These rows will be added to {{name}}.",
   "successTitle": "Import complete",
   "viewTransactions": "View transactions",
   "stepOf": "Step {{step}} of {{total}}",

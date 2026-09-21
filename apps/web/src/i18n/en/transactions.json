@@ -6,7 +6,9 @@
     "coin": "Coin",
     "allCoins": "All coins",
     "type": "Type",
-    "allTypes": "All types"
+    "allTypes": "All types",
+    "wallet": "Wallet",
+    "allWallets": "All wallets"
   },
   "type": {
     "buy": "Buy",
@@ -42,6 +44,7 @@
     "editTitle": "Edit transaction",
     "type": "Type",
     "scope": "Personal or group",
+    "wallet": "Wallet",
     "personal": "Personal",
     "group": {
       "tab": "Group",

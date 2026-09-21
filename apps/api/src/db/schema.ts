@@ -47,6 +47,18 @@ export const settings = pgTable(
   () => [ownRowsPolicy('settings', 'user_id')],
 ).enableRLS();
 
+export const wallets = pgTable(
+  'wallets',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [index('wallets_user_id_idx').on(t.userId), ownRowsPolicy('wallets', 'user_id')],
+).enableRLS();
+
 export const transactions = pgTable(
   'transactions',
   {
@@ -57,6 +69,8 @@ export const transactions = pgTable(
     scope: text('scope').notNull().default('personal'),
     /** JSON-serialized `TransactionParticipant[]`; `[]` for personal trades. */
     participants: text('participants').notNull().default('[]'),
+    /** The wallet this trade sits in (`wallets.id`, same user). */
+    walletId: text('wallet_id').notNull(),
     coinId: text('coin_id').notNull(),
     coinSymbol: text('coin_symbol').notNull(),
     coinName: text('coin_name').notNull(),
@@ -74,6 +88,7 @@ export const transactions = pgTable(
   (t) => [
     index('transactions_user_id_occurred_at_idx').on(t.userId, t.occurredAt),
     index('transactions_user_id_coin_id_idx').on(t.userId, t.coinId),
+    index('transactions_user_id_wallet_id_idx').on(t.userId, t.walletId),
     ownRowsPolicy('transactions', 'user_id'),
   ],
 ).enableRLS();
@@ -116,6 +131,8 @@ export const portfolioSnapshots = pgTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    /** Null for the whole portfolio; set for the snapshot of one wallet. */
+    walletId: text('wallet_id'),
     takenAt: text('taken_at').notNull(),
     totalValueUsd: doublePrecision('total_value_usd').notNull(),
     investedUsd: doublePrecision('invested_usd').notNull(),
@@ -125,6 +142,7 @@ export const portfolioSnapshots = pgTable(
   },
   (t) => [
     index('portfolio_snapshots_user_id_taken_at_idx').on(t.userId, t.takenAt),
+    index('portfolio_snapshots_user_id_wallet_id_taken_at_idx').on(t.userId, t.walletId, t.takenAt),
     ownRowsPolicy('portfolio_snapshots', 'user_id'),
   ],
 ).enableRLS();
@@ -135,6 +153,8 @@ export const portfolioSnapshots = pgTable(
 
 export type SettingsRow = typeof settings.$inferSelect;
 export type NewSettingsRow = typeof settings.$inferInsert;
+export type WalletRow = typeof wallets.$inferSelect;
+export type NewWalletRow = typeof wallets.$inferInsert;
 export type TransactionRow = typeof transactions.$inferSelect;
 export type NewTransactionRow = typeof transactions.$inferInsert;
 export type AlertRow = typeof alerts.$inferSelect;

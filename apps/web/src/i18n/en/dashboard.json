@@ -3,6 +3,7 @@
   "lastUpdated": "Prices updated {{time}}",
   "pricesUnavailable": "Prices unavailable right now",
   "holdingsLink": "Holdings",
+  "walletsLink": "Wallets",
   "totalValue": "Total value",
   "invested": "Invested",
   "unrealizedPnl": "Unrealized P/L",
@@ -15,6 +16,10 @@
     "title": "No holdings yet",
     "description": "Add your first transaction and your portfolio appears here.",
     "action": "Add a transaction"
+  },
+  "emptyWallet": {
+    "title": "Nothing in {{name}} yet",
+    "description": "Add a transaction to this wallet and its value appears here."
   },
   "chart": {
     "rangeLabel": "Chart range",

@@ -49,6 +49,7 @@ export function createTransactionsRoutes(deps: TransactionsDeps): Hono<AppEnv> {
     .use(requireAuth)
     .get('/', async (c) => {
       const coinId = c.req.query('coinId');
+      const walletId = c.req.query('walletId');
       const typeParam = c.req.query('type');
       if (typeParam !== undefined && !isTransactionType(typeParam)) {
         throw new ApiError(
@@ -60,6 +61,7 @@ export function createTransactionsRoutes(deps: TransactionsDeps): Hono<AppEnv> {
 
       const filter: TransactionFilter = {};
       if (coinId) filter.coinId = coinId;
+      if (walletId) filter.walletId = walletId;
       if (typeParam) filter.type = typeParam;
 
       const rows = await listTransactions(c.get('db'), c.get('user').id, filter);

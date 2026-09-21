@@ -3,6 +3,7 @@
   "lastUpdated": "تم تحديث الأسعار {{time}}",
   "pricesUnavailable": "الأسعار غير متاحة الآن",
   "holdingsLink": "الحيازات",
+  "walletsLink": "المحافظ",
   "totalValue": "القيمة الإجمالية",
   "invested": "المبلغ المستثمر",
   "unrealizedPnl": "الربح/الخسارة غير المحققة",
@@ -19,6 +20,10 @@
     "title": "لا توجد ممتلكات بعد",
     "description": "أضف أول معاملة وستظهر محفظتك هنا.",
     "action": "إضافة معاملة"
+  },
+  "emptyWallet": {
+    "title": "لا شيء في {{name}} بعد",
+    "description": "أضف معاملة إلى هذه المحفظة وستظهر قيمتها هنا."
   },
   "chart": {
     "rangeLabel": "مدى الرسم البياني",

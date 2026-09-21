@@ -34,6 +34,7 @@ import {
   TrashIcon as PhTrash,
   UploadSimpleIcon,
   UsersThreeIcon,
+  WalletIcon,
   WarningCircleIcon,
   WarningIcon,
   XCircleIcon,
@@ -135,6 +136,7 @@ export const Icon = {
   Funnel: wrap(FunnelIcon),
   ArrowsClockwise: wrap(ArrowsClockwiseIcon),
   UsersThree: wrap(UsersThreeIcon),
+  Wallet: wrap(WalletIcon),
 } satisfies Record<string, IconComponent>;
 
 export type IconName = keyof typeof Icon;

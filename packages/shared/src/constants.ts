@@ -22,6 +22,12 @@ export const SHARE_PCT_TOTAL = 100;
 export const PORTFOLIO_VIEWS = ['whole', 'mine'] as const;
 export type PortfolioView = (typeof PORTFOLIO_VIEWS)[number];
 
+/** Wallets group transactions so each can be valued on its own or all together. */
+export const WALLET_NAME_MAX = 40;
+export const MAX_WALLETS_PER_USER = 20;
+/** Name of the wallet created for a user who has none yet; existing trades land in it. */
+export const DEFAULT_WALLET_NAME = 'Main wallet';
+
 export const ALERT_DIRECTIONS = ['above', 'below'] as const;
 export type AlertDirection = (typeof ALERT_DIRECTIONS)[number];
 

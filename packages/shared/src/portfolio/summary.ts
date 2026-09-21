@@ -10,6 +10,8 @@ export interface ComputePortfolioInput {
   pricesUpdatedAt: string | null;
   /** Defaults to `whole`. `mine` values only the owner's share of group trades. */
   view?: PortfolioView;
+  /** Echoed into the summary; the caller filters `transactions` to that wallet. Null = all. */
+  walletId?: string | null;
 }
 
 function hasGroupTrades(txs: readonly TransactionLike[]): boolean {
@@ -106,6 +108,7 @@ export function computePortfolio(input: ComputePortfolioInput): PortfolioSummary
 
   return {
     view,
+    walletId: input.walletId ?? null,
     hasGroupTransactions: hasGroupTrades(input.transactions),
     totalValueUsd,
     investedUsd,

@@ -77,10 +77,14 @@ export function Dialog({
       aria-modal="true"
       aria-labelledby={titleId}
       className={cn(
-        'fixed m-0 w-full max-w-none bg-transparent p-0 text-ink backdrop:bg-black/40 backdrop:backdrop-blur-sm open:flex open:flex-col',
+        'fixed h-auto max-w-none bg-transparent p-0 text-ink backdrop:bg-black/40 backdrop:backdrop-blur-sm open:flex open:flex-col',
+        // Width and margin are set once per presentation: stacking `m-0 w-full` with
+        // `m-auto w-[...]` lets the stylesheet order decide, which broke the centered card.
+        // The centered card fills the viewport with a transparent dialog and centres the
+        // panel inside it, so it sits mid-screen whatever its height.
         sheet
-          ? 'inset-x-0 top-auto bottom-0 h-auto max-h-[92dvh] md:inset-0 md:m-auto md:max-h-[85dvh] md:w-[min(30rem,calc(100%-2rem))]'
-          : 'inset-0 m-auto h-auto max-h-[85dvh] w-[min(30rem,calc(100%-2rem))]',
+          ? 'inset-x-0 top-auto bottom-0 m-0 max-h-[92dvh] w-full md:inset-0 md:m-auto md:max-h-[85dvh] md:w-[min(30rem,calc(100%-2rem))]'
+          : 'inset-0 m-0 h-full w-full p-4 open:items-center open:justify-center',
         className,
       )}
     >
@@ -89,7 +93,7 @@ export function Dialog({
           'flex max-h-[inherit] flex-col overflow-hidden bg-surface shadow-panel',
           sheet
             ? 'animate-sheet-up rounded-t-[var(--r-lg)] md:animate-dialog-in md:rounded-[var(--r-md)]'
-            : 'animate-dialog-in rounded-[var(--r-md)]',
+            : 'animate-dialog-in w-full max-w-[30rem] rounded-[var(--r-md)] max-h-[85dvh]',
         )}
       >
         {sheet ? (

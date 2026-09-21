@@ -7,7 +7,15 @@ import { loadPortfolioInputs, recordSnapshot, summarize } from '../services/port
 import type { PortfolioDeps } from '../routes/portfolio';
 import type { CronJob } from './index';
 
-/** Records one portfolio snapshot per user with at least one transaction, every hour. */
+/** Distinct wallet ids that hold at least one of the given transactions. Pure. */
+export function walletIdsOf(txs: readonly { walletId?: string }[]): string[] {
+  return [...new Set(txs.flatMap((tx) => (tx.walletId ? [tx.walletId] : [])))];
+}
+
+/**
+ * Records portfolio snapshots for every user with at least one transaction, every hour: one
+ * row for the whole portfolio plus one per wallet that holds a trade.
+ */
 export function createSnapshotJob(deps: PortfolioDeps): CronJob {
   return {
     name: 'portfolio-snapshot',
@@ -25,9 +33,11 @@ export function createSnapshotJob(deps: PortfolioDeps): CronJob {
             userId,
             deps,
           );
-          const whole = summarize(txs, prices, fx, pricesUpdatedAt, 'whole');
-          const mine = summarize(txs, prices, fx, pricesUpdatedAt, 'mine');
-          await recordSnapshot(db, userId, whole, mine, takenAt);
+          for (const walletId of [null, ...walletIdsOf(txs)]) {
+            const whole = summarize(txs, prices, fx, pricesUpdatedAt, 'whole', walletId);
+            const mine = summarize(txs, prices, fx, pricesUpdatedAt, 'mine', walletId);
+            await recordSnapshot(db, userId, whole, mine, takenAt, walletId);
+          }
         }),
       );
 

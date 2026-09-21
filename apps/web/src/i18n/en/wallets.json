@@ -1,0 +1,56 @@
+{
+  "title": "Wallets",
+  "subtitle": "Keep trades in separate wallets and see what each one is worth.",
+  "add": "Add wallet",
+  "hint": "New trades go into the wallet you choose when you add them. You can have up to {{max}} wallets.",
+  "switcher": {
+    "label": "Wallet",
+    "all": "All wallets"
+  },
+  "breakdown": {
+    "title": "By wallet",
+    "subtitle": "What each wallet is worth right now. Tap one to see only that wallet.",
+    "manage": "Manage",
+    "holdings_one": "{{count}} coin",
+    "holdings_other": "{{count}} coins"
+  },
+  "list": {
+    "transactions_one": "{{count}} transaction",
+    "transactions_other": "{{count}} transactions",
+    "holdings_one": "{{count}} coin",
+    "holdings_other": "{{count}} coins"
+  },
+  "actions": {
+    "view": "View on dashboard",
+    "rename": "Rename wallet",
+    "delete": "Delete wallet",
+    "more": "More actions"
+  },
+  "form": {
+    "createTitle": "New wallet",
+    "renameTitle": "Rename wallet",
+    "name": "Name",
+    "nameHint": "For example: Binance, Ledger, Savings.",
+    "namePlaceholder": "Wallet name",
+    "save": "Save wallet",
+    "errors": {
+      "name": "Enter a name of 1 to {{max}} characters"
+    }
+  },
+  "delete": {
+    "title": "Delete wallet?",
+    "confirm": "This will delete the wallet \"{{name}}\". This cannot be undone.",
+    "notEmpty_one": "\"{{name}}\" still has {{count}} transaction. Move it to another wallet or delete it first.",
+    "notEmpty_other": "\"{{name}}\" still has {{count}} transactions. Move them to another wallet or delete them first."
+  },
+  "errors": {
+    "nameTaken": "You already have a wallet with that name.",
+    "notEmpty": "This wallet still has transactions. Move or delete them first.",
+    "limit": "You have reached the maximum number of wallets."
+  },
+  "toast": {
+    "created": "Wallet added",
+    "renamed": "Wallet renamed",
+    "deleted": "Wallet deleted"
+  }
+}

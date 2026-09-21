@@ -53,6 +53,22 @@ describe('findTimelineViolation', () => {
     expect(findTimelineViolation(txs)).toBeNull();
   });
 
+  it('tracks wallets independently', () => {
+    const sell = tx({ type: 'sell', quantity: 1, walletId: 'w2' });
+    const violation = findTimelineViolation([tx({ quantity: 5, walletId: 'w1' }), sell]);
+    expect(violation?.transactionId).toBe(sell.id);
+    expect(violation?.available).toBe(0);
+  });
+
+  it('covers a sell with buys from the same wallet', () => {
+    const txs = [
+      tx({ quantity: 1, walletId: 'w1' }),
+      tx({ quantity: 2, walletId: 'w2' }),
+      tx({ type: 'sell', quantity: 2, walletId: 'w2' }),
+    ];
+    expect(findTimelineViolation(txs)).toBeNull();
+  });
+
   it('tracks coins independently', () => {
     const sell = tx({ coinId: 'ethereum', type: 'sell', quantity: 1 });
     expect(findTimelineViolation([tx({ coinId: 'bitcoin', quantity: 5 }), sell])?.coinId).toBe(

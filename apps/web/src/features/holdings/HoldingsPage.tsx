@@ -26,6 +26,7 @@ import {
 } from '@/components/ui';
 import { useSettings } from '@/app/settings/SettingsProvider';
 import { usePortfolio } from '@/features/dashboard/queries';
+import { WalletSwitcher, useSelectedWallet } from '@/features/wallets';
 import { cn } from '@/lib/cn';
 import {
   formatDate,
@@ -137,10 +138,18 @@ function HoldingFacts({
 }
 
 /** This coin's buys and sells, newest first, with group participants where present. */
-function HoldingTransactions({ coinId, language }: { coinId: string; language: Language }) {
+function HoldingTransactions({
+  coinId,
+  walletId,
+  language,
+}: {
+  coinId: string;
+  walletId: string | null;
+  language: Language;
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const query = useTransactions({ coinId });
+  const query = useTransactions({ coinId, walletId: walletId ?? undefined });
 
   if (query.isPending) return <ListRow.Skeleton rows={2} />;
   if (query.isError) {
@@ -203,12 +212,14 @@ interface HoldingItemProps {
   holding: Holding;
   /** The same coin valued at the owner's share only; undefined until that summary loads. */
   mine: Holding | undefined;
+  /** Wallet the page is narrowed to, so the transaction list matches. */
+  walletId: string | null;
   expanded: boolean;
   onToggle: () => void;
   money: Money;
 }
 
-function HoldingItem({ holding, mine, expanded, onToggle, money }: HoldingItemProps) {
+function HoldingItem({ holding, mine, walletId, expanded, onToggle, money }: HoldingItemProps) {
   const { t } = useTranslation();
   const { currency, fx, language } = money;
   const panelId = `holding-${holding.coinId}`;
@@ -293,7 +304,7 @@ function HoldingItem({ holding, mine, expanded, onToggle, money }: HoldingItemPr
             </section>
           ) : null}
 
-          <HoldingTransactions coinId={holding.coinId} language={language} />
+          <HoldingTransactions coinId={holding.coinId} walletId={walletId} language={language} />
         </div>
       ) : null}
     </li>
@@ -313,8 +324,9 @@ export function HoldingsPage() {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { language, baseCurrency } = settings;
-  const whole = usePortfolio('whole');
-  const mine = usePortfolio('mine');
+  const selected = useSelectedWallet();
+  const whole = usePortfolio('whole', selected.walletId);
+  const mine = usePortfolio('mine', selected.walletId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const summary: PortfolioSummary | undefined = whole.data;
@@ -324,7 +336,9 @@ export function HoldingsPage() {
 
   const header = (
     <PageHeader
-      title={t('holdings.title')}
+      title={
+        selected.wallet ? `${t('holdings.title')} · ${selected.wallet.name}` : t('holdings.title')
+      }
       subtitle={
         summary
           ? summary.pricesUpdatedAt
@@ -342,6 +356,16 @@ export function HoldingsPage() {
   return (
     <>
       {header}
+
+      {selected.hasMultiple ? (
+        <div className="animate-rise">
+          <WalletSwitcher
+            wallets={selected.wallets}
+            value={selected.walletId}
+            onChange={selected.setWalletId}
+          />
+        </div>
+      ) : null}
 
       {whole.isPending ? (
         <HoldingsSkeleton />
@@ -369,6 +393,7 @@ export function HoldingsPage() {
                 key={holding.coinId}
                 holding={holding}
                 mine={mine.data ? (mineByCoin.get(holding.coinId) ?? holding) : undefined}
+                walletId={selected.walletId}
                 expanded={expandedId === holding.coinId}
                 onToggle={() =>
                   setExpandedId((current) => (current === holding.coinId ? null : holding.coinId))

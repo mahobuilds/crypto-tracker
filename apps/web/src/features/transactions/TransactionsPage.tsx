@@ -21,6 +21,7 @@ import {
 import type { SelectOption } from '@/components/ui';
 import { Icon } from '@/components/icons';
 import { useSettings } from '@/app/settings/SettingsProvider';
+import { useWallets } from '@/features/wallets';
 import { ApiRequestError } from '@/lib/api';
 import { formatDate, formatFiat, formatQuantity } from '@/lib/format';
 import { DeleteTransactionDialog } from './DeleteTransactionDialog';
@@ -57,17 +58,33 @@ export function TransactionsPage() {
 
   const [coinFilter, setCoinFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState<'' | TransactionType>('');
+  const [walletFilter, setWalletFilter] = useState('');
   const [formDialog, setFormDialog] = useState<FormDialogState>({ open: false, transaction: null });
   const [deletingTx, setDeletingTx] = useState<Transaction | null>(null);
   const [actionsFor, setActionsFor] = useState<Transaction | null>(null);
 
   const filter: TransactionsFilter = useMemo(
-    () => ({ coinId: coinFilter || undefined, type: typeFilter || undefined }),
-    [coinFilter, typeFilter],
+    () => ({
+      coinId: coinFilter || undefined,
+      type: typeFilter || undefined,
+      walletId: walletFilter || undefined,
+    }),
+    [coinFilter, typeFilter, walletFilter],
   );
 
   const listQuery = useTransactions(filter);
   const transactions = listQuery.data?.transactions ?? [];
+  const walletsQuery = useWallets();
+  const wallets = walletsQuery.data?.wallets ?? [];
+  const walletNames = useMemo(
+    () => new Map(wallets.map((wallet) => [wallet.id, wallet.name])),
+    [wallets],
+  );
+  const showWallets = wallets.length > 1;
+  const walletOptions: SelectOption[] = [
+    { value: '', label: t('transactions.filters.allWallets') },
+    ...wallets.map((wallet) => ({ value: wallet.id, label: wallet.name })),
+  ];
   const allTransactionsQuery = useTransactions({});
   const allCount = allTransactionsQuery.data?.transactions.length;
 
@@ -162,9 +179,18 @@ export function TransactionsPage() {
       />
 
       <div
-        className="animate-rise grid grid-cols-2 gap-3"
+        className={`animate-rise grid gap-3 ${showWallets ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}
         style={{ '--i': 1 } as React.CSSProperties}
       >
+        {showWallets ? (
+          <Select
+            aria-label={t('transactions.filters.wallet')}
+            className="col-span-2 sm:col-span-1"
+            options={walletOptions}
+            value={walletFilter}
+            onChange={(event) => setWalletFilter(event.target.value)}
+          />
+        ) : null}
         <Select
           aria-label={t('transactions.filters.coin')}
           options={coinOptions}
@@ -221,6 +247,11 @@ export function TransactionsPage() {
                         {tx.scope === 'group' ? (
                           <Badge tone="accent" icon={<Icon.UsersThree weight="bold" />}>
                             {t('transactions.scope.group')}
+                          </Badge>
+                        ) : null}
+                        {showWallets && walletNames.has(tx.walletId) ? (
+                          <Badge icon={<Icon.Wallet weight="bold" />}>
+                            {walletNames.get(tx.walletId)}
                           </Badge>
                         ) : null}
                       </>

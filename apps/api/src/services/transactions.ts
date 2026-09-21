@@ -21,6 +21,7 @@ import { transactions, type NewTransactionRow, type TransactionRow } from '../db
 import { ApiError } from '../lib/errors';
 import { newId } from '../lib/ids';
 import { nowIso } from '../lib/time';
+import { resolveWalletId } from './wallets';
 
 function isOneOf<T extends string>(values: readonly T[], value: string): value is T {
   return (values as readonly string[]).includes(value);
@@ -54,6 +55,7 @@ export function rowToTransaction(row: TransactionRow): Transaction {
     type: row.type,
     scope: row.scope,
     participants: row.scope === 'group' ? parseParticipants(row.participants) : [],
+    walletId: row.walletId,
     coinId: row.coinId,
     coinSymbol: row.coinSymbol,
     coinName: row.coinName,
@@ -93,19 +95,25 @@ export function toTransactionLike(row: TransactionRow): TransactionLike {
       row.scope,
       row.scope === 'group' ? parseParticipants(row.participants) : [],
     ),
+    walletId: row.walletId,
   };
 }
 
-/** Builds a `TransactionLike` for an input that has not been written yet (create/update preview). */
+/**
+ * Builds a `TransactionLike` for an input that has not been written yet (create/update preview).
+ * `walletId` is the resolved wallet, never the raw optional field on the input.
+ */
 export function inputToLike(
   id: string,
   input: TransactionInput,
   usd: { pricePerUnitUsd: number; feeUsd: number },
   createdAt: string,
+  walletId: string,
 ): TransactionLike {
   return {
     id,
     type: input.type,
+    walletId,
     coinId: input.coinId,
     coinSymbol: input.coinSymbol,
     coinName: input.coinName,
@@ -121,6 +129,7 @@ export function inputToLike(
 export interface TransactionFilter {
   coinId?: string;
   type?: TransactionType;
+  walletId?: string;
 }
 
 /** All of a user's transactions, ordered by `occurredAt` desc then `createdAt` desc. */
@@ -132,6 +141,7 @@ export async function listTransactions(
   const conditions = [eq(transactions.userId, userId)];
   if (filter.coinId) conditions.push(eq(transactions.coinId, filter.coinId));
   if (filter.type) conditions.push(eq(transactions.type, filter.type));
+  if (filter.walletId) conditions.push(eq(transactions.walletId, filter.walletId));
 
   return db.query.transactions.findMany({
     where: and(...conditions),
@@ -186,6 +196,7 @@ export function inputToRow(
   usd: { pricePerUnitUsd: number; feeUsd: number },
   createdAt: string,
   updatedAt: string,
+  walletId: string,
 ): NewTransactionRow {
   return {
     id,
@@ -193,6 +204,7 @@ export function inputToRow(
     type: input.type,
     scope: input.scope,
     participants: JSON.stringify(input.scope === 'group' ? input.participants : []),
+    walletId,
     coinId: input.coinId,
     coinSymbol: input.coinSymbol,
     coinName: input.coinName,
@@ -216,6 +228,7 @@ export async function createTransaction(
   fx: FxRates,
 ): Promise<Transaction> {
   const input = withCalculatedFee(rawInput);
+  const walletId = await resolveWalletId(db, userId, input.walletId);
   const existingRows = await listTransactions(db, userId);
   const existing = existingRows.map(toTransactionLike);
   const usd = normalizeUsd(input, fx);
@@ -224,12 +237,12 @@ export async function createTransaction(
 
   assertTimelineValid(existing, {
     kind: 'create',
-    transaction: inputToLike(id, input, usd, createdAt),
+    transaction: inputToLike(id, input, usd, createdAt, walletId),
   });
 
   const [row] = await db
     .insert(transactions)
-    .values(inputToRow(id, userId, input, usd, createdAt, createdAt))
+    .values(inputToRow(id, userId, input, usd, createdAt, createdAt, walletId))
     .returning();
   return rowToTransaction(row as TransactionRow);
 }
@@ -248,18 +261,23 @@ export async function updateTransaction(
     throw new ApiError(404, 'NOT_FOUND', 'Transaction not found');
   }
 
+  // Editing keeps the trade in its wallet unless the input names another one.
+  const walletId =
+    input.walletId === undefined
+      ? current.walletId
+      : await resolveWalletId(db, userId, input.walletId);
   const existing = existingRows.map(toTransactionLike);
   const usd = normalizeUsd(input, fx);
   const updatedAt = nowIso();
 
   assertTimelineValid(existing, {
     kind: 'update',
-    transaction: inputToLike(id, input, usd, current.createdAt),
+    transaction: inputToLike(id, input, usd, current.createdAt, walletId),
   });
 
   const [row] = await db
     .update(transactions)
-    .set(inputToRow(id, userId, input, usd, current.createdAt, updatedAt))
+    .set(inputToRow(id, userId, input, usd, current.createdAt, updatedAt, walletId))
     .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
     .returning();
   return rowToTransaction(row as TransactionRow);

@@ -37,6 +37,12 @@ Sometimes my father goes in on a coin together with friends. A group trade recor
 
 ![Group transaction form](docs/screenshots/transaction-form-group.png)
 
+### Wallets
+
+Trades can be kept in separate wallets, for example one per exchange account or hardware wallet. Every account starts with a "Main wallet" that holds everything already recorded; more can be added, renamed or deleted (a wallet with transactions in it cannot be deleted). Each transaction belongs to one wallet, chosen when it is added or edited, and a CSV import goes into the wallet picked on the import page.
+
+The dashboard and the holdings page have a wallet switcher: "All wallets" shows the combined portfolio with a "By wallet" panel listing what each wallet is worth, and picking one wallet narrows every figure, the chart and the holdings list to that wallet alone. Sells are checked against what the same wallet holds, and the hourly snapshots are recorded per wallet as well as for the whole portfolio, so each wallet gets its own profit and loss line.
+
 ### Holdings
 
 One row per coin: quantity held, average cost, current value and unrealized gain. Tap a row to expand it and see the transactions behind that position. Coins you hold through a group trade show your share as a badge.
@@ -75,18 +81,18 @@ The app is a PWA, so it installs to the phone home screen and opens like a nativ
 
 A single Node.js server (Hono) serves the React app as static files and provides the API, the scheduled jobs and the push notifications, all on one origin. Data lives in Supabase Postgres, sign in goes through Supabase Auth with Google, and the whole thing deploys to Railway from GitHub.
 
-| Layer          | Choice                                                                             |
-| -------------- | ---------------------------------------------------------------------------------- |
-| Frontend       | React 19, TypeScript, Vite, Tailwind CSS, Recharts, react-i18next, TanStack Query  |
-| PWA            | vite-plugin-pwa (service worker, manifest, installability)                         |
-| Backend        | Node.js 24, Hono                                                                   |
-| Database       | Supabase Postgres via Drizzle ORM                                                  |
-| Auth           | Supabase Auth (Google provider); the API verifies the Supabase JWT                 |
-| Scheduled jobs | node-cron in the same process: price refresh, alert checks, hourly snapshots, FX   |
-| Push           | Web Push (VAPID)                                                                   |
-| Market data    | CoinGecko                                                                          |
-| FX rates       | open.er-api.com                                                                    |
-| Deployment     | Railway                                                                            |
+| Layer          | Choice                                                                            |
+| -------------- | --------------------------------------------------------------------------------- |
+| Frontend       | React 19, TypeScript, Vite, Tailwind CSS, Recharts, react-i18next, TanStack Query |
+| PWA            | vite-plugin-pwa (service worker, manifest, installability)                        |
+| Backend        | Node.js 24, Hono                                                                  |
+| Database       | Supabase Postgres via Drizzle ORM                                                 |
+| Auth           | Supabase Auth (Google provider); the API verifies the Supabase JWT                |
+| Scheduled jobs | node-cron in the same process: price refresh, alert checks, hourly snapshots, FX  |
+| Push           | Web Push (VAPID)                                                                  |
+| Market data    | CoinGecko                                                                         |
+| FX rates       | open.er-api.com                                                                   |
+| Deployment     | Railway                                                                           |
 
 Portfolio maths (average cost, FIFO, group shares), validation schemas and the CSV parser live in a shared package used by both the API and the web app, so the numbers you see in the browser are computed by the same code the server uses.
 
@@ -114,7 +120,7 @@ crypto-tracker/
 ├── apps/
 │   ├── web/          # React PWA
 │   │   └── src/
-│   │       ├── features/   # dashboard, holdings, transactions, prices, alerts, import, settings
+│   │       ├── features/   # dashboard, holdings, wallets, transactions, prices, alerts, import, settings
 │   │       ├── components/ # design system (Panel, StatCard, ListRow, Dialog, ...)
 │   │       ├── i18n/       # en and ar strings, one file per feature
 │   │       └── app/        # shell, auth, routes, settings provider
@@ -128,7 +134,3 @@ crypto-tracker/
 │   └── shared/       # types, zod schemas, portfolio maths, CSV parser
 └── docs/             # PRD, design system, deploy guide, screenshots
 ```
-
-## License
-
-Private project.

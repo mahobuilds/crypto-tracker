@@ -13,6 +13,7 @@ import { newId } from '../lib/ids';
 import { nowIso } from '../lib/time';
 import { requireAuth } from '../middleware/auth';
 import { resolveRows } from '../services/import';
+import { resolveWalletId } from '../services/wallets';
 import {
   assertTimelineValid,
   inputToLike,
@@ -42,7 +43,7 @@ export function createImportRoutes(deps: ImportRoutesDeps): Hono<AppEnv> {
     if (typeof payload !== 'object' || payload === null) {
       throw new ApiError(400, 'VALIDATION_ERROR', 'Body must be JSON');
     }
-    const { csv, mode } = payload as Partial<ImportRequest>;
+    const { csv, mode, walletId: rawWalletId } = payload as Partial<ImportRequest>;
     if (typeof csv !== 'string' || csv.length === 0) {
       throw new ApiError(400, 'VALIDATION_ERROR', 'csv: must be a non-empty string');
     }
@@ -52,9 +53,13 @@ export function createImportRoutes(deps: ImportRoutesDeps): Hono<AppEnv> {
     if (mode !== 'preview' && mode !== 'commit') {
       throw new ApiError(400, 'VALIDATION_ERROR', 'mode: must be "preview" or "commit"');
     }
+    if (rawWalletId !== undefined && (typeof rawWalletId !== 'string' || rawWalletId === '')) {
+      throw new ApiError(400, 'VALIDATION_ERROR', 'walletId: must be a non-empty string');
+    }
 
     const db = c.get('db');
     const userId = c.get('user').id;
+    const walletId = await resolveWalletId(db, userId, rawWalletId);
     const settings = await getOrCreateSettings(db, userId);
 
     const parseResult = parseTransactionsCsv(csv, { defaultCurrency: settings.baseCurrency });
@@ -84,10 +89,10 @@ export function createImportRoutes(deps: ImportRoutesDeps): Hono<AppEnv> {
       const id = newId();
       const createdAt = nowIso();
       const usd = normalizeUsd(row.input, fx);
-      const like = inputToLike(id, row.input, usd, createdAt);
+      const like = inputToLike(id, row.input, usd, createdAt, walletId);
       assertTimelineValid(timeline, { kind: 'create', transaction: like });
       timeline = applyChange(timeline, { kind: 'create', transaction: like });
-      return [inputToRow(id, userId, row.input, usd, createdAt, createdAt)];
+      return [inputToRow(id, userId, row.input, usd, createdAt, createdAt, walletId)];
     });
 
     for (const row of prepared) {

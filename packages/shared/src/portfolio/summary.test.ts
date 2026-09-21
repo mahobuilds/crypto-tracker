@@ -9,6 +9,7 @@ describe('computePortfolio', () => {
     const summary = computePortfolio({ transactions: [], prices: {}, fx, pricesUpdatedAt: null });
     expect(summary).toEqual({
       view: 'whole',
+      walletId: null,
       hasGroupTransactions: false,
       totalValueUsd: 0,
       investedUsd: 0,

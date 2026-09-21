@@ -10,6 +10,7 @@ import {
   type ImportResponse,
 } from '@crypto-tracker/shared';
 import { useSettings } from '@/app/settings/SettingsProvider';
+import { useSelectedWallet } from '@/features/wallets';
 import { Icon } from '@/components/icons';
 import {
   Badge,
@@ -19,6 +20,7 @@ import {
   Field,
   PageHeader,
   Panel,
+  Select,
   Textarea,
   useToast,
 } from '@/components/ui';
@@ -50,12 +52,17 @@ export function ImportPage() {
   const [csvText, setCsvText] = useState('');
   const [previewResult, setPreviewResult] = useState<ImportResponse | null>(null);
   const [committedResult, setCommittedResult] = useState<ImportResponse | null>(null);
+  const selectedWallet = useSelectedWallet();
+  const wallets = selectedWallet.wallets;
+  const [walletChoice, setWalletChoice] = useState('');
+  // Rows land in the chosen wallet, else the one the dashboard shows, else the default.
+  const walletId = walletChoice || selectedWallet.walletId || wallets[0]?.id;
 
   const previewMutation = useMutation({
     mutationFn: (csv: string) =>
       apiFetch<ImportResponse>('/api/transactions/import', {
         method: 'POST',
-        json: { csv, mode: 'preview' } satisfies ImportRequest,
+        json: { csv, mode: 'preview', walletId } satisfies ImportRequest,
       }),
     onSuccess: (data, csv) => {
       setCsvText(csv);
@@ -67,13 +74,14 @@ export function ImportPage() {
     mutationFn: () =>
       apiFetch<ImportResponse>('/api/transactions/import', {
         method: 'POST',
-        json: { csv: csvText, mode: 'commit' } satisfies ImportRequest,
+        json: { csv: csvText, mode: 'commit', walletId } satisfies ImportRequest,
       }),
     onSuccess: (data) => {
       setCommittedResult(data);
       toast.success(t('import.successMessage', { count: data.importedCount }));
       void queryClient.invalidateQueries({ queryKey: ['transactions'] });
       void queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+      void queryClient.invalidateQueries({ queryKey: ['wallets'] });
     },
   });
 
@@ -163,6 +171,21 @@ export function ImportPage() {
                 </Fragment>
               ))}
             </dl>
+
+            {wallets.length > 1 ? (
+              <Field
+                htmlFor="import-wallet"
+                label={t('import.wallet')}
+                hint={t('import.walletHint')}
+              >
+                <Select
+                  id="import-wallet"
+                  options={wallets.map((wallet) => ({ value: wallet.id, label: wallet.name }))}
+                  value={walletId ?? ''}
+                  onChange={(event) => setWalletChoice(event.target.value)}
+                />
+              </Field>
+            ) : null}
 
             <label
               htmlFor="import-file"
@@ -256,6 +279,14 @@ export function ImportPage() {
           <PreviewTable rows={previewResult.rows} language={settings.language} />
 
           <div className="flex flex-col gap-3 p-5 md:p-6">
+            {wallets.length > 1 ? (
+              <p className="text-caption text-ink-2">
+                <Icon.Wallet size={14} className="me-1 inline align-[-2px]" />
+                {t('import.intoWallet', {
+                  name: wallets.find((wallet) => wallet.id === walletId)?.name ?? '',
+                })}
+              </p>
+            ) : null}
             {commitMutation.isError ? (
               <ErrorMessage message={errorMessage(commitMutation.error, t('errors.generic'))} />
             ) : null}

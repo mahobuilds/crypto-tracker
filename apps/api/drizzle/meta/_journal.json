@@ -29,6 +29,13 @@
       "when": 1789810167297,
       "tag": "0003_fixed_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789981640399,
+      "tag": "0004_stiff_zombie",
+      "breakpoints": true
     }
   ]
 }

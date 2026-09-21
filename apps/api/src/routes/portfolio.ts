@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import {
   PORTFOLIO_VIEWS,
   historyRangeSchema,
@@ -6,7 +6,13 @@ import {
   type PortfolioHistoryResponse,
   type PortfolioView,
 } from '@crypto-tracker/shared';
-import { buildPortfolio, downsample, listSnapshots } from '../services/portfolio';
+import {
+  buildPortfolio,
+  buildWalletBreakdown,
+  downsample,
+  listSnapshots,
+} from '../services/portfolio';
+import { getWalletRow, listWallets } from '../services/wallets';
 import { ApiError } from '../lib/errors';
 import { requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../types';
@@ -29,6 +35,12 @@ function parseView(raw: string | undefined): PortfolioView {
   );
 }
 
+/** `walletId` query: absent or empty means every wallet; otherwise it must be the user's own. */
+async function parseWalletId(c: Context<AppEnv>, raw: string | undefined): Promise<string | null> {
+  if (raw === undefined || raw === '') return null;
+  return (await getWalletRow(c.get('db'), c.get('user').id, raw)).id;
+}
+
 export function createPortfolioRoutes(deps: PortfolioDeps): Hono<AppEnv> {
   return new Hono<AppEnv>()
     .use(requireAuth)
@@ -36,8 +48,17 @@ export function createPortfolioRoutes(deps: PortfolioDeps): Hono<AppEnv> {
       const user = c.get('user');
       const db = c.get('db');
       const view = parseView(c.req.query('view'));
-      const summary = await buildPortfolio(c.get('env'), db, user.id, deps, view);
+      const walletId = await parseWalletId(c, c.req.query('walletId'));
+      const summary = await buildPortfolio(c.get('env'), db, user.id, deps, view, walletId);
       return c.json(summary);
+    })
+    .get('/wallets', async (c) => {
+      const user = c.get('user');
+      const db = c.get('db');
+      const view = parseView(c.req.query('view'));
+      const wallets = await listWallets(db, user.id);
+      const body = await buildWalletBreakdown(c.get('env'), db, user.id, deps, wallets, view);
+      return c.json(body);
     })
     .get('/history', async (c) => {
       const raw = c.req.query('range') ?? '30d';
@@ -49,7 +70,11 @@ export function createPortfolioRoutes(deps: PortfolioDeps): Hono<AppEnv> {
       const user = c.get('user');
       const db = c.get('db');
       const since = rangeToSince(range, new Date());
-      const points = downsample(await listSnapshots(db, user.id, since), MAX_HISTORY_POINTS);
+      const walletId = await parseWalletId(c, c.req.query('walletId'));
+      const points = downsample(
+        await listSnapshots(db, user.id, since, walletId),
+        MAX_HISTORY_POINTS,
+      );
       const body: PortfolioHistoryResponse = { range, points };
       return c.json(body);
     });

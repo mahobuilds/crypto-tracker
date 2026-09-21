@@ -46,6 +46,26 @@ export interface MeResponse {
   settings: Settings;
 }
 
+/** A named bucket of transactions, e.g. an exchange account or a hardware wallet. */
+export interface Wallet {
+  id: string;
+  name: string;
+  /** Number of transactions recorded in this wallet. */
+  transactionCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Body of `POST /api/wallets` and `PUT /api/wallets/:id`. */
+export interface WalletInput {
+  name: string;
+}
+
+/** Response of `GET /api/wallets`. */
+export interface WalletListResponse {
+  wallets: Wallet[];
+}
+
 /**
  * One person in a group transaction and their share of it, in whole percent (1-99).
  * Exactly one participant per group trade is the account owner (`isMe`).
@@ -62,6 +82,8 @@ export interface Transaction {
   /** Personal trades have no participants; group trades list them, shares summing to 100. */
   scope: TransactionScope;
   participants: TransactionParticipant[];
+  /** The wallet this trade belongs to. */
+  walletId: string;
   /** CoinGecko id, e.g. "bitcoin". */
   coinId: string;
   /** Upper-case ticker, e.g. "BTC". */
@@ -89,6 +111,8 @@ export interface TransactionInput {
   type: TransactionType;
   scope: TransactionScope;
   participants: TransactionParticipant[];
+  /** Omitted means the user's default wallet. */
+  walletId?: string;
   coinId: string;
   coinSymbol: string;
   coinName: string;
@@ -168,10 +192,12 @@ export interface PnlByMethod {
   unrealizedPnlPct: number | null;
 }
 
-/** Response of `GET /api/portfolio?view=`. Top-level figures use the average-cost method. */
+/** Response of `GET /api/portfolio?view=&walletId=`. Top-level figures use the average-cost method. */
 export interface PortfolioSummary {
   /** `whole` counts group trades in full; `mine` scales them to the owner's share. */
   view: PortfolioView;
+  /** The wallet these figures cover; null means every wallet together. */
+  walletId: string | null;
   /** True when at least one group transaction exists, so the view toggle is worth showing. */
   hasGroupTransactions: boolean;
   totalValueUsd: number;
@@ -185,6 +211,27 @@ export interface PortfolioSummary {
     fifo: PnlByMethod;
   };
   holdings: Holding[];
+  fx: FxRates;
+  pricesUpdatedAt: string | null;
+}
+
+/** One wallet's worth, as listed on the dashboard and the wallets page. */
+export interface WalletValuation {
+  walletId: string;
+  name: string;
+  transactionCount: number;
+  holdingsCount: number;
+  totalValueUsd: number;
+  investedUsd: number;
+  unrealizedPnlUsd: number;
+  unrealizedPnlPct: number;
+  realizedPnlUsd: number;
+}
+
+/** Response of `GET /api/portfolio/wallets?view=`: every wallet valued separately, in one call. */
+export interface WalletBreakdownResponse {
+  view: PortfolioView;
+  wallets: WalletValuation[];
   fx: FxRates;
   pricesUpdatedAt: string | null;
 }
@@ -256,6 +303,8 @@ export interface ImportRowResult {
 export interface ImportRequest {
   csv: string;
   mode: 'preview' | 'commit';
+  /** Wallet the rows go into; omitted means the user's default wallet. */
+  walletId?: string;
 }
 
 /** Response of `POST /api/transactions/import`. */

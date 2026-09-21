@@ -14,6 +14,7 @@ import {
   type TransactionParticipant,
   type TransactionScope,
   type TransactionType,
+  type Wallet,
 } from '@crypto-tracker/shared';
 import { CoinPicker } from '@/components/CoinPicker';
 import {
@@ -31,6 +32,7 @@ import {
 import { Icon } from '@/components/icons';
 import type { SelectOption } from '@/components/ui';
 import { useSettings } from '@/app/settings/SettingsProvider';
+import { useSelectedWallet } from '@/features/wallets';
 import { formatFiat } from '@/lib/format';
 import { ParticipantsEditor } from './ParticipantsEditor';
 import { useCreateTransaction, useUpdateTransaction } from './queries';
@@ -47,6 +49,8 @@ interface FormState {
   type: TransactionType;
   scope: TransactionScope;
   participants: TransactionParticipant[];
+  /** Empty until the wallet list has loaded and a default is picked. */
+  walletId: string;
   coin: CoinSearchResult | null;
   quantity: string;
   pricePerUnit: string;
@@ -82,15 +86,23 @@ function withOwner(
   return [owner ?? { ...ownerRow(ownerName), sharePct: 1 }, ...others];
 }
 
+/** New trades go into the wallet the dashboard is looking at, else the first (default) wallet. */
+function defaultWalletId(wallets: readonly Wallet[], selected: string | null): string {
+  if (selected && wallets.some((wallet) => wallet.id === selected)) return selected;
+  return wallets[0]?.id ?? '';
+}
+
 function buildInitialState(
   transaction: Transaction | null,
   baseCurrency: Currency,
   ownerName: string,
+  walletId: string,
 ): FormState {
   if (transaction) {
     return {
       type: transaction.type,
       scope: transaction.scope,
+      walletId: transaction.walletId,
       participants:
         transaction.scope === 'group'
           ? withOwner(
@@ -115,6 +127,7 @@ function buildInitialState(
     type: 'buy',
     scope: 'personal',
     participants: [],
+    walletId,
     coin: null,
     quantity: '',
     pricePerUnit: '',
@@ -127,12 +140,19 @@ function buildInitialState(
 export function TransactionForm({ open, transaction, onClose, onSaved }: TransactionFormProps) {
   const { t } = useTranslation();
   const { settings, user } = useSettings();
+  const selectedWallet = useSelectedWallet();
+  const wallets = selectedWallet.wallets;
   const createMutation = useCreateTransaction();
   const updateMutation = useUpdateTransaction();
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   const [form, setForm] = useState<FormState>(() =>
-    buildInitialState(transaction, settings.baseCurrency, user.name),
+    buildInitialState(
+      transaction,
+      settings.baseCurrency,
+      user.name,
+      defaultWalletId(wallets, selectedWallet.walletId),
+    ),
   );
   const [errors, setErrors] = useState<FieldErrors>({});
   const [participantNameErrors, setParticipantNameErrors] = useState<ReadonlySet<number>>(
@@ -142,14 +162,29 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
 
   useEffect(() => {
     if (!open) return;
-    setForm(buildInitialState(transaction, settings.baseCurrency, user.name));
+    setForm(
+      buildInitialState(
+        transaction,
+        settings.baseCurrency,
+        user.name,
+        defaultWalletId(wallets, selectedWallet.walletId),
+      ),
+    );
     setErrors({});
     setParticipantNameErrors(new Set());
     setServerError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, transaction]);
 
+  // The wallet list can arrive after the form opened: fill the default in once, never override a choice.
+  useEffect(() => {
+    if (!open || form.walletId !== '' || wallets.length === 0) return;
+    setForm((prev) => ({ ...prev, walletId: defaultWalletId(wallets, selectedWallet.walletId) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, wallets]);
+
   const formId = 'transaction-form';
+  const walletFieldId = 'transaction-form-wallet';
   const coinFieldId = 'transaction-form-coin';
   const participantsId = 'transaction-form-participants';
   const quantityId = 'transaction-form-quantity';
@@ -162,6 +197,11 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
     value: currency,
     label: `${currency} (${CURRENCY_SYMBOLS[currency]})`,
   }));
+  const walletOptions: SelectOption[] = wallets.map((wallet) => ({
+    value: wallet.id,
+    label: wallet.name,
+  }));
+  const showWalletField = wallets.length > 1;
 
   const quantityNum = Number(form.quantity);
   const priceNum = Number(form.pricePerUnit);
@@ -220,6 +260,7 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
       type: form.type,
       scope: form.scope,
       participants,
+      walletId: form.walletId || undefined,
       coinId: form.coin?.id ?? '',
       coinSymbol: form.coin?.symbol ?? '',
       coinName: form.coin?.name ?? '',
@@ -318,6 +359,17 @@ export function TransactionForm({ open, transaction, onClose, onSaved }: Transac
             { value: 'sell', label: t('transactions.form.sell'), tone: 'loss' },
           ]}
         />
+
+        {showWalletField ? (
+          <Field htmlFor={walletFieldId} label={t('transactions.form.wallet')}>
+            <Select
+              id={walletFieldId}
+              options={walletOptions}
+              value={form.walletId}
+              onChange={(event) => updateField('walletId', event.target.value)}
+            />
+          </Field>
+        ) : null}
 
         <div>
           <CoinPicker

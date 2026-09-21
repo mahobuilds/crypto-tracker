@@ -210,9 +210,11 @@ function ChartBody({ points, mode, fx }: ChartBodyProps) {
 
 export interface PnlChartProps {
   view?: PortfolioView;
+  /** One wallet's series, or null for the whole portfolio. */
+  walletId?: string | null;
 }
 
-export function PnlChart({ view = 'whole' }: PnlChartProps) {
+export function PnlChart({ view = 'whole', walletId = null }: PnlChartProps) {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const { language, baseCurrency } = settings;
@@ -223,7 +225,7 @@ export function PnlChart({ view = 'whole' }: PnlChartProps) {
     readStored(MODE_STORAGE_KEY, ['usd', 'pct'] as const, 'usd'),
   );
   const [showTable, setShowTable] = useState(false);
-  const history = usePortfolioHistory(range);
+  const history = usePortfolioHistory(range, walletId);
 
   useEffect(() => store(RANGE_STORAGE_KEY, range), [range]);
   useEffect(() => store(MODE_STORAGE_KEY, mode), [mode]);
@@ -288,6 +290,7 @@ export function PnlChart({ view = 'whole' }: PnlChartProps) {
           showTable={showTable}
           onToggleTable={() => setShowTable((v) => !v)}
           view={view}
+          walletId={walletId}
         />
       )}
     </PnlChartFrame>
@@ -317,6 +320,7 @@ interface PnlChartContentProps {
   showTable: boolean;
   onToggleTable: () => void;
   view: PortfolioView;
+  walletId: string | null;
 }
 
 function PnlChartContent({
@@ -329,11 +333,12 @@ function PnlChartContent({
   showTable,
   onToggleTable,
   view,
+  walletId,
 }: PnlChartContentProps) {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const { language, baseCurrency } = settings;
-  const fx = useFxFromPortfolio(view);
+  const fx = useFxFromPortfolio(view, walletId);
 
   const currentValue =
     mode === 'usd'
@@ -408,8 +413,8 @@ function PnlChartContent({
 }
 
 /** FX rates travel with the portfolio summary; fall back to USD identity until it loads. */
-function useFxFromPortfolio(view: PortfolioView): FxRates {
-  const portfolio = usePortfolio(view);
+function useFxFromPortfolio(view: PortfolioView, walletId: string | null): FxRates {
+  const portfolio = usePortfolio(view, walletId);
   return (
     portfolio.data?.fx ?? {
       base: 'USD',
