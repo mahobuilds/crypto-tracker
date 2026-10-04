@@ -18,23 +18,45 @@
     "transactions_one": "{{count}} transaction",
     "transactions_other": "{{count}} transactions",
     "holdings_one": "{{count}} coin",
-    "holdings_other": "{{count}} coins"
+    "holdings_other": "{{count}} coins",
+    "solo": "Solo",
+    "group": "Group"
   },
   "actions": {
     "view": "View on dashboard",
-    "rename": "Rename wallet",
+    "edit": "Edit wallet",
     "delete": "Delete wallet",
     "more": "More actions"
   },
   "form": {
     "createTitle": "New wallet",
-    "renameTitle": "Rename wallet",
+    "editTitle": "Edit wallet",
     "name": "Name",
     "nameHint": "For example: Binance, Ledger, Savings.",
     "namePlaceholder": "Wallet name",
+    "kind": "Solo or group",
+    "solo": "Solo",
+    "group": {
+      "tab": "Group",
+      "people": "People in this wallet",
+      "hint": "Add each person and their share. Shares must add up to 100%.",
+      "allocated": "{{total}} of 100%",
+      "name": "Name",
+      "namePlaceholder": "Name",
+      "share": "Share",
+      "you": "You",
+      "yourShare": "Your share",
+      "addPerson": "Add new person",
+      "remove": "Remove {{name}}",
+      "full": "Shares already add up to 100%."
+    },
+    "splitHint": "Every trade in this wallet is split by these shares, so you only enter them once.",
+    "splitChanged": "Changing the shares also re-splits the trades already in this wallet.",
     "save": "Save wallet",
     "errors": {
-      "name": "Enter a name of 1 to {{max}} characters"
+      "name": "Enter a name of 1 to {{max}} characters",
+      "participantName": "Enter a name for every person",
+      "participantsTotal": "Shares must add up to exactly {{total}}%"
     }
   },
   "delete": {
@@ -50,7 +72,7 @@
   },
   "toast": {
     "created": "Wallet added",
-    "renamed": "Wallet renamed",
+    "updated": "Wallet updated",
     "deleted": "Wallet deleted"
   }
 }

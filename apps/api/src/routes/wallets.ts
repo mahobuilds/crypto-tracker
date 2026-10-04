@@ -7,10 +7,15 @@ import {
 } from '@crypto-tracker/shared';
 import { ApiError } from '../lib/errors';
 import { requireAuth } from '../middleware/auth';
+import { snapshotAfterChange } from '../services/portfolio';
 import { createWallet, deleteWallet, listWallets, updateWallet } from '../services/wallets';
 import type { AppEnv } from '../types';
+import type { PortfolioDeps } from './portfolio';
 
-async function readWalletInput(request: Request): Promise<WalletInput> {
+/** The parsed body, and whether it carried a split at all (older app versions send only a name). */
+async function readWalletInput(
+  request: Request,
+): Promise<{ input: WalletInput; hasSplit: boolean }> {
   let body: unknown;
   try {
     body = await request.json();
@@ -23,10 +28,11 @@ async function readWalletInput(request: Request): Promise<WalletInput> {
     const path = issue?.path.join('.') || 'body';
     throw new ApiError(400, 'VALIDATION_ERROR', `${path}: ${issue?.message ?? 'Invalid input'}`);
   }
-  return result.data;
+  const hasSplit = typeof body === 'object' && body !== null && 'scope' in body;
+  return { input: result.data, hasSplit };
 }
 
-export function createWalletsRoutes(): Hono<AppEnv> {
+export function createWalletsRoutes(deps: PortfolioDeps): Hono<AppEnv> {
   return new Hono<AppEnv>()
     .use(requireAuth)
     .get('/', async (c) => {
@@ -36,18 +42,21 @@ export function createWalletsRoutes(): Hono<AppEnv> {
       return c.json(body);
     })
     .post('/', async (c) => {
-      const input = await readWalletInput(c.req.raw);
+      const { input } = await readWalletInput(c.req.raw);
       const body: Wallet = await createWallet(c.get('db'), c.get('user').id, input);
       return c.json(body, 201);
     })
     .put('/:id', async (c) => {
-      const input = await readWalletInput(c.req.raw);
+      const { input, hasSplit } = await readWalletInput(c.req.raw);
       const body: Wallet = await updateWallet(
         c.get('db'),
         c.get('user').id,
         c.req.param('id'),
         input,
+        { keepSplit: !hasSplit },
       );
+      // A new split changes the owner's share of every trade in the wallet.
+      await snapshotAfterChange(c.get('env'), c.get('db'), c.get('user').id, deps);
       return c.json(body);
     })
     .delete('/:id', async (c) => {

@@ -4,8 +4,8 @@ import {
   SHARE_PCT_MAX,
   SHARE_PCT_MIN,
   SHARE_PCT_TOTAL,
-  TRANSACTION_SCOPES,
   TRANSACTION_TYPES,
+  type TransactionScope,
 } from './constants';
 import type { TransactionInput, TransactionParticipant } from './types';
 
@@ -70,48 +70,54 @@ export function maxSharePctFor(participants: readonly TransactionParticipant[]):
   return Math.max(0, Math.min(SHARE_PCT_MAX, SHARE_PCT_TOTAL - totalSharePct(participants)));
 }
 
-export const transactionInputSchema = z
-  .object({
-    type: z.enum(TRANSACTION_TYPES),
-    scope: z.enum(TRANSACTION_SCOPES).default('personal'),
-    participants: z.array(participantSchema).max(50).default([]),
-    walletId: trimmedString(100).optional(),
-    coinId: coinIdSchema,
-    coinSymbol: coinSymbolSchema,
-    coinName: coinNameSchema,
-    quantity: z.number().finite().positive(),
-    pricePerUnit: z.number().finite().nonnegative(),
-    currency: z.enum(CURRENCIES),
-    fee: z.number().finite().nonnegative().default(0),
-    occurredAt: occurredAtSchema,
-    note: noteSchema,
-  })
-  .superRefine((value, ctx) => {
-    if (value.scope === 'personal') {
-      if (value.participants.length > 0) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['participants'],
-          message: 'A personal transaction has no participants',
-        });
-      }
-      return;
-    }
-    if (totalSharePct(value.participants) !== SHARE_PCT_TOTAL) {
+/**
+ * Validation shared by everything that carries a split: a solo (`personal`) one has no
+ * participants; a group one lists people whose shares add up to exactly 100, one of them the owner.
+ */
+export function addSplitIssues(
+  value: { scope: TransactionScope; participants: readonly TransactionParticipant[] },
+  ctx: z.RefinementCtx,
+): void {
+  if (value.scope === 'personal') {
+    if (value.participants.length > 0) {
       ctx.addIssue({
         code: 'custom',
         path: ['participants'],
-        message: `Shares must add up to exactly ${SHARE_PCT_TOTAL}%`,
+        message: 'A solo wallet has no participants',
       });
     }
-    if (value.participants.filter((participant) => participant.isMe).length !== 1) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['participants'],
-        message: 'A group transaction must include exactly one participant marked as you',
-      });
-    }
-  });
+    return;
+  }
+  if (totalSharePct(value.participants) !== SHARE_PCT_TOTAL) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['participants'],
+      message: `Shares must add up to exactly ${SHARE_PCT_TOTAL}%`,
+    });
+  }
+  if (value.participants.filter((participant) => participant.isMe).length !== 1) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['participants'],
+      message: 'A group wallet must include exactly one participant marked as you',
+    });
+  }
+}
+
+/** The split of a trade comes from its wallet, so the input carries no scope or participants. */
+export const transactionInputSchema = z.object({
+  type: z.enum(TRANSACTION_TYPES),
+  walletId: trimmedString(100).optional(),
+  coinId: coinIdSchema,
+  coinSymbol: coinSymbolSchema,
+  coinName: coinNameSchema,
+  quantity: z.number().finite().positive(),
+  pricePerUnit: z.number().finite().nonnegative(),
+  currency: z.enum(CURRENCIES),
+  fee: z.number().finite().nonnegative().default(0),
+  occurredAt: occurredAtSchema,
+  note: noteSchema,
+});
 
 type AssertEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
 const transactionSchemaMatchesType: AssertEqual<

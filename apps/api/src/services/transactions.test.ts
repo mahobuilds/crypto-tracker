@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { FxRates, TransactionInput, TransactionLike } from '@crypto-tracker/shared';
 import { ApiError } from '../lib/errors';
-import { assertTimelineValid, normalizeUsd, rowToTransaction } from './transactions';
+import {
+  assertTimelineValid,
+  inputToLike,
+  inputToRow,
+  normalizeUsd,
+  rowToTransaction,
+  toTargetWallet,
+} from './transactions';
 import type { TransactionRow } from '../db/schema';
 
 const fx: FxRates = {
@@ -13,8 +20,6 @@ const fx: FxRates = {
 function input(overrides: Partial<TransactionInput> = {}): TransactionInput {
   return {
     type: 'buy',
-    scope: 'personal',
-    participants: [],
     coinId: 'bitcoin',
     coinSymbol: 'BTC',
     coinName: 'Bitcoin',
@@ -176,5 +181,37 @@ describe('rowToTransaction', () => {
   it('maps a null note through as null and preserves a note', () => {
     expect(rowToTransaction(row({ note: null })).note).toBeNull();
     expect(rowToTransaction(row({ note: 'DCA buy' })).note).toBe('DCA buy');
+  });
+});
+
+describe('wallet split', () => {
+  const groupWallet = toTargetWallet({
+    id: 'wallet-2',
+    scope: 'group',
+    participants: JSON.stringify([
+      { name: 'Me', sharePct: 30, isMe: true },
+      { name: 'Omar', sharePct: 70, isMe: false },
+    ]),
+  });
+  const usd = { pricePerUnitUsd: 100, feeUsd: 0 };
+  const at = '2024-01-01T00:00:00.000Z';
+
+  it('copies the wallet split onto a new row', () => {
+    const newRow = inputToRow('tx-9', 'user-1', input(), usd, at, at, groupWallet);
+    expect(newRow.walletId).toBe('wallet-2');
+    expect(newRow.scope).toBe('group');
+    expect(JSON.parse(newRow.participants ?? '[]')).toEqual(groupWallet.participants);
+  });
+
+  it("uses the wallet's owner share for the timeline", () => {
+    expect(inputToLike('tx-9', input(), usd, at, groupWallet).ownerSharePct).toBe(30);
+  });
+
+  it('treats a solo wallet as a personal trade with no participants', () => {
+    const solo = toTargetWallet({ id: 'wallet-1', scope: 'personal', participants: '[]' });
+    const newRow = inputToRow('tx-9', 'user-1', input(), usd, at, at, solo);
+    expect(newRow.scope).toBe('personal');
+    expect(newRow.participants).toBe('[]');
+    expect(inputToLike('tx-9', input(), usd, at, solo).ownerSharePct).toBe(100);
   });
 });

@@ -18,6 +18,7 @@ import {
   useToast,
 } from '@/components/ui';
 import { useWalletBreakdown } from '@/features/dashboard/queries';
+import { formatParticipants } from '@/features/transactions/utils';
 import { formatMoneyUsd, formatPct } from '@/lib/format';
 import { WalletForm, resolveWalletError } from './WalletForm';
 import { useDeleteWallet, useWallets } from './queries';
@@ -54,7 +55,7 @@ export function WalletsPage() {
   function openCreate() {
     setForm({ open: true, wallet: null });
   }
-  function openRename(wallet: Wallet) {
+  function openEdit(wallet: Wallet) {
     setActionsFor(null);
     setForm({ open: true, wallet });
   }
@@ -85,7 +86,7 @@ export function WalletsPage() {
   const rowActions = (wallet: Wallet) => (
     <>
       <div className="hidden md:flex">
-        <IconButton aria-label={t('wallets.actions.rename')} onClick={() => openRename(wallet)}>
+        <IconButton aria-label={t('wallets.actions.edit')} onClick={() => openEdit(wallet)}>
           <Icon.Pencil />
         </IconButton>
         <IconButton
@@ -108,7 +109,12 @@ export function WalletsPage() {
 
   function subtitle(wallet: Wallet): string {
     const value = valuations.get(wallet.id);
-    const parts = [t('wallets.list.transactions', { count: wallet.transactionCount })];
+    const parts = [
+      wallet.scope === 'group'
+        ? formatParticipants(wallet.participants, language, t('transactions.you'))
+        : t('wallets.list.solo'),
+      t('wallets.list.transactions', { count: wallet.transactionCount }),
+    ];
     if (value) parts.push(t('wallets.list.holdings', { count: value.holdingsCount }));
     return parts.join(' · ');
   }
@@ -147,7 +153,7 @@ export function WalletsPage() {
                   onPress={() => viewOnDashboard(wallet)}
                   leading={
                     <span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent">
-                      <Icon.Wallet />
+                      {wallet.scope === 'group' ? <Icon.UsersThree /> : <Icon.Wallet />}
                     </span>
                   }
                   title={wallet.name}
@@ -195,10 +201,10 @@ export function WalletsPage() {
             variant="secondary"
             size="lg"
             fullWidth
-            onClick={() => actionsFor && openRename(actionsFor)}
+            onClick={() => actionsFor && openEdit(actionsFor)}
           >
             <Icon.Pencil />
-            {t('wallets.actions.rename')}
+            {t('wallets.actions.edit')}
           </Button>
           <Button
             variant="danger"

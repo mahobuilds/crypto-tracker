@@ -18,6 +18,7 @@ import type {
   TransactionListResponse,
   Wallet,
   WalletBreakdownResponse,
+  WalletInput,
   WalletListResponse,
 } from '@crypto-tracker/shared';
 import { DEFAULT_SETTINGS } from '@crypto-tracker/shared';
@@ -57,9 +58,31 @@ const wallets: Wallet[] = [
   wallet('w1', 'Main wallet', iso(90 * DAY)),
   wallet('w2', 'Binance', iso(60 * DAY)),
 ];
+// The second wallet is shared: every trade in it is split 50/30/20.
+wallets[1]!.scope = 'group';
+wallets[1]!.participants = [
+  { name: mockUser.name, sharePct: 50, isMe: true },
+  { name: 'Omar', sharePct: 30, isMe: false },
+  { name: 'Sami', sharePct: 20, isMe: false },
+];
 
 function wallet(id: string, name: string, createdAt: string): Wallet {
-  return { id, name, transactionCount: 0, createdAt, updatedAt: createdAt };
+  return {
+    id,
+    name,
+    scope: 'personal',
+    participants: [],
+    transactionCount: 0,
+    createdAt,
+    updatedAt: createdAt,
+  };
+}
+
+/** Copies a wallet's split onto a trade, the way the API does when a trade is written. */
+function applyWalletSplit(transaction: Transaction): void {
+  const target = wallets.find((w) => w.id === transaction.walletId);
+  transaction.scope = target?.scope ?? 'personal';
+  transaction.participants = target?.participants.map((p) => ({ ...p })) ?? [];
 }
 
 const transactions: Transaction[] = [
@@ -82,15 +105,10 @@ const transactions: Transaction[] = [
   tx('t5', 'buy', 'bitcoin', 'BTC', 'Bitcoin', 0.5, 60000, 'USD', 10, iso(67 * DAY), 'First buy'),
   tx('t6', 'buy', 'cardano', 'ADA', 'Cardano', 3200, 0.62, 'USD', 0, iso(74 * DAY), null),
 ];
-// The SOL and LINK buys sit in the second wallet; everything else is in the main one.
+// The SOL and LINK buys sit in the second (group) wallet; everything else is in the main one.
 transactions[1]!.walletId = 'w2';
 transactions[3]!.walletId = 'w2';
-transactions[1]!.scope = 'group';
-transactions[1]!.participants = [
-  { name: mockUser.name, sharePct: 50, isMe: true },
-  { name: 'Omar', sharePct: 30, isMe: false },
-  { name: 'Sami', sharePct: 20, isMe: false },
-];
+transactions.forEach(applyWalletSplit);
 
 function tx(
   id: string,
@@ -371,8 +389,8 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
     return { wallets: walletsWithCounts() } satisfies WalletListResponse;
   }
   if (p === '/api/wallets' && method === 'POST') {
-    const { name } = init.json as { name: string };
-    const created = wallet(`w${Date.now()}`, name, iso(0));
+    const input = init.json as WalletInput;
+    const created = { ...wallet(`w${Date.now()}`, input.name, iso(0)), ...input };
     wallets.push(created);
     return created;
   }
@@ -384,8 +402,9 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
       return undefined;
     }
     if (method === 'PUT' && index >= 0) {
-      const updated = { ...wallets[index]!, ...(init.json as { name: string }), updatedAt: iso(0) };
+      const updated = { ...wallets[index]!, ...(init.json as WalletInput), updatedAt: iso(0) };
       wallets[index] = updated;
+      transactions.filter((t) => t.walletId === updated.id).forEach(applyWalletSplit);
       return updated;
     }
   }
@@ -434,9 +453,8 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
       input.occurredAt,
       input.note,
     );
-    created.scope = input.scope;
-    created.participants = input.participants;
     created.walletId = input.walletId ?? wallets[0]?.id ?? 'w1';
+    applyWalletSplit(created);
     transactions.unshift(created);
     return created;
   }
@@ -450,6 +468,7 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
     if (method === 'PUT' && index >= 0) {
       const current = transactions[index]!;
       const updated = { ...current, ...(init.json as object) } as Transaction;
+      applyWalletSplit(updated);
       transactions[index] = updated;
       return updated;
     }
@@ -461,8 +480,6 @@ export function mockResponse(path: string, init: RequestInit & { json?: unknown 
         line: 2,
         input: {
           type: 'buy',
-          scope: 'personal',
-          participants: [],
           walletId: 'w1',
           coinId: 'ethereum',
           coinSymbol: 'ETH',
