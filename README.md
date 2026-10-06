@@ -31,11 +31,9 @@ Add, edit and delete buys and sells. Each entry has a coin (searched from the fu
 
 ![Transactions](docs/screenshots/transactions.png)
 
-### Group trades
+### Group wallets
 
-Sometimes my father goes in on a coin together with friends. A group trade records everyone who took part and their share in whole percent, adding up to 100. The transaction list shows who was in on it, the holdings page flags the coin with a "Yours 50%" badge, and expanding that holding shows a "Your share" section that counts only his part of each group trade.
-
-![Group transaction form](docs/screenshots/transaction-form-group.png)
+Sometimes my father goes in on coins together with friends. When creating a wallet he picks Solo or Group; a group wallet records everyone who takes part and their share in whole percent, adding up to 100. Every trade added to that wallet is split by those shares, so they are entered once instead of on every trade. Changing a wallet's shares re-splits the trades already in it. The transaction list shows who was in on each trade, the holdings page flags the coin with a "Yours 50%" badge, and expanding that holding shows a "Your share" section that counts only his part of each group trade.
 
 ### Wallets
 

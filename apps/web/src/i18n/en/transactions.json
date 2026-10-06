@@ -43,23 +43,8 @@
     "addTitle": "Add transaction",
     "editTitle": "Edit transaction",
     "type": "Type",
-    "scope": "Personal or group",
     "wallet": "Wallet",
-    "personal": "Personal",
-    "group": {
-      "tab": "Group",
-      "people": "People in this trade",
-      "hint": "Add each person and their share. Shares must add up to 100%.",
-      "allocated": "{{total}} of 100%",
-      "name": "Name",
-      "namePlaceholder": "Name",
-      "share": "Share",
-      "you": "You",
-      "yourShare": "Your share",
-      "addPerson": "Add new person",
-      "remove": "Remove {{name}}",
-      "full": "Shares already add up to 100%."
-    },
+    "split": "Split by this wallet: {{split}}",
     "buy": "Buy",
     "sell": "Sell",
     "coinLabel": "Coin",
@@ -75,9 +60,7 @@
       "pricePerUnit": "Enter a price of zero or more",
       "currency": "Choose a currency",
       "date": "Enter a valid date and time",
-      "note": "Note is too long",
-      "participantName": "Enter a name for every person",
-      "participantsTotal": "Shares must add up to exactly {{total}}%"
+      "note": "Note is too long"
     },
     "save": "Save transaction",
     "feeAuto": "Fee ({{rate}}, added automatically)"

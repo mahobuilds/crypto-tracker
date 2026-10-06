@@ -2,7 +2,10 @@ import { and, asc, count, eq, sql } from 'drizzle-orm';
 import {
   DEFAULT_WALLET_NAME,
   MAX_WALLETS_PER_USER,
+  participantSchema,
   walletNameKey,
+  type TransactionParticipant,
+  type TransactionScope,
   type Wallet,
   type WalletInput,
 } from '@crypto-tracker/shared';
@@ -12,10 +15,47 @@ import { ApiError } from '../lib/errors';
 import { newId } from '../lib/ids';
 import { nowIso } from '../lib/time';
 
+/** How every trade in a wallet is split between people; copied onto each trade it holds. */
+export interface WalletSplit {
+  scope: TransactionScope;
+  participants: TransactionParticipant[];
+}
+
+const SOLO_SPLIT: WalletSplit = { scope: 'personal', participants: [] };
+
+/** Parses a JSON `participants` column; malformed data is treated as an empty list. */
+export function parseParticipants(raw: string): TransactionParticipant[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  const result = participantSchema.array().safeParse(parsed);
+  return result.success ? result.data : [];
+}
+
+/** The split stored on a wallet row. Anything but 'group' counts as solo. */
+export function walletSplit(row: Pick<WalletRow, 'scope' | 'participants'>): WalletSplit {
+  if (row.scope !== 'group') return SOLO_SPLIT;
+  return { scope: 'group', participants: parseParticipants(row.participants) };
+}
+
+/** A split as stored in the `scope` and `participants` columns of wallets and transactions. */
+export function splitColumns(split: WalletSplit): Pick<WalletRow, 'scope' | 'participants'> {
+  return {
+    scope: split.scope,
+    participants: JSON.stringify(split.scope === 'group' ? split.participants : []),
+  };
+}
+
 export function rowToWallet(row: WalletRow, transactionCount: number): Wallet {
+  const split = walletSplit(row);
   return {
     id: row.id,
     name: row.name,
+    scope: split.scope,
+    participants: split.participants.map((participant) => ({ ...participant })),
     transactionCount,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -45,9 +85,21 @@ async function countTransactionsByWallet(
   return new Map(rows.map((row) => [row.walletId, row.value]));
 }
 
-async function insertWallet(db: Queryable, userId: string, name: string): Promise<WalletRow> {
+async function insertWallet(
+  db: Queryable,
+  userId: string,
+  name: string,
+  split: WalletSplit,
+): Promise<WalletRow> {
   const now = nowIso();
-  const row: WalletRow = { id: newId(), userId, name, createdAt: now, updatedAt: now };
+  const row: WalletRow = {
+    id: newId(),
+    userId,
+    name,
+    ...splitColumns(split),
+    createdAt: now,
+    updatedAt: now,
+  };
   await db.insert(wallets).values(row);
   return row;
 }
@@ -65,7 +117,7 @@ async function ensureWalletRows(db: Database, userId: string): Promise<WalletRow
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`);
     const rows = await listWalletRows(tx, userId);
     if (rows.length > 0) return rows;
-    return [await insertWallet(tx, userId, DEFAULT_WALLET_NAME)];
+    return [await insertWallet(tx, userId, DEFAULT_WALLET_NAME, SOLO_SPLIT)];
   });
 }
 
@@ -95,15 +147,15 @@ export async function getWalletRow(db: Database, userId: string, id: string): Pr
 
 /**
  * Resolves the wallet a transaction should go into: the given id (which must belong to the
- * user) or the default wallet when none was sent.
+ * user) or the default wallet when none was sent. The trade takes that wallet's split.
  */
-export async function resolveWalletId(
+export async function resolveWallet(
   db: Database,
   userId: string,
   walletId: string | undefined,
-): Promise<string> {
-  if (walletId === undefined) return (await ensureDefaultWallet(db, userId)).id;
-  return (await getWalletRow(db, userId, walletId)).id;
+): Promise<WalletRow> {
+  if (walletId === undefined) return ensureDefaultWallet(db, userId);
+  return getWalletRow(db, userId, walletId);
 }
 
 /** Throws 409 when another wallet of the user already carries `name` (ignoring case). */
@@ -135,7 +187,7 @@ export async function createWallet(
     );
   }
   assertWalletNameFree(rows, input.name);
-  const row = await insertWallet(db, userId, input.name);
+  const row = await insertWallet(db, userId, input.name, input);
   return rowToWallet(row, 0);
 }
 
@@ -144,19 +196,35 @@ export async function updateWallet(
   userId: string,
   id: string,
   input: WalletInput,
+  options: { keepSplit?: boolean } = {},
 ): Promise<Wallet> {
   const rows = await listWalletRows(db, userId);
   const current = rows.find((row) => row.id === id);
   if (!current) throw new ApiError(404, 'NOT_FOUND', 'Wallet not found');
   assertWalletNameFree(rows, input.name, id);
 
+  // A client that sends no split (an app version from before wallet splits) only renames.
+  const split = options.keepSplit
+    ? { scope: current.scope, participants: current.participants }
+    : splitColumns(input);
+  const splitChanged = split.scope !== current.scope || split.participants !== current.participants;
+
+  // A new split re-splits every trade already in the wallet, so a wallet and its trades
+  // always agree. A plain rename leaves the trades alone.
   const updatedAt = nowIso();
-  await db
-    .update(wallets)
-    .set({ name: input.name, updatedAt })
-    .where(and(eq(wallets.id, id), eq(wallets.userId, userId)));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(wallets)
+      .set({ name: input.name, ...split, updatedAt })
+      .where(and(eq(wallets.id, id), eq(wallets.userId, userId)));
+    if (!splitChanged) return;
+    await tx
+      .update(transactions)
+      .set(split)
+      .where(and(eq(transactions.userId, userId), eq(transactions.walletId, id)));
+  });
   const counts = await countTransactionsByWallet(db, userId);
-  return rowToWallet({ ...current, name: input.name, updatedAt }, counts.get(id) ?? 0);
+  return rowToWallet({ ...current, name: input.name, ...split, updatedAt }, counts.get(id) ?? 0);
 }
 
 /** Message for a wallet that cannot be deleted because trades still sit in it. */

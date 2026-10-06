@@ -53,6 +53,10 @@ export const wallets = pgTable(
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
     name: text('name').notNull(),
+    /** 'personal' (solo) | 'group'. Every trade in the wallet is split this way. */
+    scope: text('scope').notNull().default('personal'),
+    /** JSON-serialized `TransactionParticipant[]`; `[]` for solo wallets. */
+    participants: text('participants').notNull().default('[]'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },
@@ -65,9 +69,9 @@ export const transactions = pgTable(
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
     type: text('type').notNull(),
-    /** 'personal' | 'group'. */
+    /** 'personal' | 'group', copied from the wallet whenever the trade is written. */
     scope: text('scope').notNull().default('personal'),
-    /** JSON-serialized `TransactionParticipant[]`; `[]` for personal trades. */
+    /** JSON-serialized `TransactionParticipant[]` copied from the wallet; `[]` for personal trades. */
     participants: text('participants').notNull().default('[]'),
     /** The wallet this trade sits in (`wallets.id`, same user). */
     walletId: text('wallet_id').notNull(),

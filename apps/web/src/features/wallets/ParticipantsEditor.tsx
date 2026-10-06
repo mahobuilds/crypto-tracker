@@ -35,7 +35,7 @@ function shareOptions(max: number, current: number, language: Language): SelectO
 }
 
 /**
- * Editable list of people in a group transaction. Each row is a name and a whole-percent
+ * Editable list of people in a group wallet. Each row is a name and a whole-percent
  * share picked from a native select (a scroll wheel on phones). The share options for a row
  * are capped at what is left after every other row, and nobody can be added once the shares
  * already reach 100%.
@@ -74,17 +74,17 @@ export function ParticipantsEditor({
     <div className="flex flex-col gap-3" role="group" aria-labelledby={`${fieldId}-label`}>
       <div className="flex items-center justify-between gap-3">
         <span id={`${fieldId}-label`} className="text-label text-ink">
-          {t('transactions.form.group.people')}
+          {t('wallets.form.group.people')}
         </span>
         <Badge tone={complete ? 'gain' : remaining < 0 ? 'loss' : 'neutral'} className="tabular">
-          {t('transactions.form.group.allocated', {
+          {t('wallets.form.group.allocated', {
             total: formatWholePct(total, language),
           })}
         </Badge>
       </div>
 
       {participants.length === 0 ? (
-        <p className="text-caption text-ink-2">{t('transactions.form.group.hint')}</p>
+        <p className="text-caption text-ink-2">{t('wallets.form.group.hint')}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {participants.map((row, index) => {
@@ -103,14 +103,14 @@ export function ParticipantsEditor({
               >
                 {row.isMe ? (
                   <span className="flex h-12 min-w-0 items-center gap-2 px-2">
-                    <Badge tone="accent">{t('transactions.form.group.you')}</Badge>
+                    <Badge tone="accent">{t('wallets.form.group.you')}</Badge>
                     <span className="truncate text-base text-ink">{row.name}</span>
                   </span>
                 ) : (
                   <Input
                     id={nameId}
-                    aria-label={t('transactions.form.group.name')}
-                    placeholder={t('transactions.form.group.namePlaceholder')}
+                    aria-label={t('wallets.form.group.name')}
+                    placeholder={t('wallets.form.group.namePlaceholder')}
                     autoComplete="off"
                     maxLength={100}
                     invalid={nameInvalid}
@@ -122,9 +122,7 @@ export function ParticipantsEditor({
                 <Select
                   id={shareId}
                   aria-label={
-                    row.isMe
-                      ? t('transactions.form.group.yourShare')
-                      : t('transactions.form.group.share')
+                    row.isMe ? t('wallets.form.group.yourShare') : t('wallets.form.group.share')
                   }
                   options={shareOptions(max, row.sharePct, language)}
                   value={String(row.sharePct)}
@@ -137,7 +135,7 @@ export function ParticipantsEditor({
                   <IconButton
                     variant="danger"
                     size="sm"
-                    aria-label={t('transactions.form.group.remove', { name: row.name })}
+                    aria-label={t('wallets.form.group.remove', { name: row.name })}
                     onClick={() => removeRow(index)}
                   >
                     <Icon.Trash size={18} />
@@ -150,7 +148,7 @@ export function ParticipantsEditor({
                     className="text-caption col-span-3 flex items-center gap-1 px-1 font-medium text-loss"
                   >
                     <Icon.WarningCircle size={14} weight="fill" />
-                    {t('transactions.form.errors.participantName')}
+                    {t('wallets.form.errors.participantName')}
                   </p>
                 ) : null}
               </li>
@@ -168,11 +166,11 @@ export function ParticipantsEditor({
         aria-describedby={canAdd ? undefined : `${fieldId}-full`}
       >
         <Icon.Plus weight="bold" />
-        {t('transactions.form.group.addPerson')}
+        {t('wallets.form.group.addPerson')}
       </Button>
       {!canAdd && !error ? (
         <p id={`${fieldId}-full`} className="text-caption text-ink-2">
-          {t('transactions.form.group.full')}
+          {t('wallets.form.group.full')}
         </p>
       ) : null}
 

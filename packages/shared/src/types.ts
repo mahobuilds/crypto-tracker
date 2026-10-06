@@ -50,6 +50,10 @@ export interface MeResponse {
 export interface Wallet {
   id: string;
   name: string;
+  /** Solo (`personal`) wallets have no participants; group wallets list them, shares summing to 100. */
+  scope: TransactionScope;
+  /** How every trade in this wallet is split between people. */
+  participants: TransactionParticipant[];
   /** Number of transactions recorded in this wallet. */
   transactionCount: number;
   createdAt: string;
@@ -59,6 +63,8 @@ export interface Wallet {
 /** Body of `POST /api/wallets` and `PUT /api/wallets/:id`. */
 export interface WalletInput {
   name: string;
+  scope: TransactionScope;
+  participants: TransactionParticipant[];
 }
 
 /** Response of `GET /api/wallets`. */
@@ -67,8 +73,8 @@ export interface WalletListResponse {
 }
 
 /**
- * One person in a group transaction and their share of it, in whole percent (1-99).
- * Exactly one participant per group trade is the account owner (`isMe`).
+ * One person in a group wallet and their share of its trades, in whole percent (1-99).
+ * Exactly one participant per group wallet is the account owner (`isMe`).
  */
 export interface TransactionParticipant {
   name: string;
@@ -79,7 +85,10 @@ export interface TransactionParticipant {
 export interface Transaction {
   id: string;
   type: TransactionType;
-  /** Personal trades have no participants; group trades list them, shares summing to 100. */
+  /**
+   * The split this trade was recorded with, copied from its wallet: personal trades have no
+   * participants; group trades list them, shares summing to 100.
+   */
   scope: TransactionScope;
   participants: TransactionParticipant[];
   /** The wallet this trade belongs to. */
@@ -109,8 +118,6 @@ export interface Transaction {
 /** Body of `POST /api/transactions` and `PUT /api/transactions/:id`. */
 export interface TransactionInput {
   type: TransactionType;
-  scope: TransactionScope;
-  participants: TransactionParticipant[];
   /** Omitted means the user's default wallet. */
   walletId?: string;
   coinId: string;

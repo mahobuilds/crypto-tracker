@@ -1,11 +1,19 @@
 import { z } from 'zod';
-import { WALLET_NAME_MAX } from './constants';
-import { trimmedString } from './transactions';
+import { TRANSACTION_SCOPES, WALLET_NAME_MAX } from './constants';
+import { addSplitIssues, participantSchema, trimmedString } from './transactions';
 import type { Wallet, WalletInput } from './types';
 
-export const walletInputSchema = z.object({
-  name: trimmedString(WALLET_NAME_MAX),
-});
+/**
+ * A wallet is solo (`personal`) or shared by a group. Every trade in a group wallet is split
+ * by the wallet's participants, so the shares are entered once here instead of on each trade.
+ */
+export const walletInputSchema = z
+  .object({
+    name: trimmedString(WALLET_NAME_MAX),
+    scope: z.enum(TRANSACTION_SCOPES).default('personal'),
+    participants: z.array(participantSchema).max(50).default([]),
+  })
+  .superRefine(addSplitIssues);
 
 type AssertEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
 const walletSchemaMatchesType: AssertEqual<z.infer<typeof walletInputSchema>, WalletInput> = true;

@@ -13,7 +13,7 @@ export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 export const TRANSACTION_SCOPES = ['personal', 'group'] as const;
 export type TransactionScope = (typeof TRANSACTION_SCOPES)[number];
 
-/** A group participant's share of a transaction, in whole percent. All shares must sum to 100. */
+/** A group wallet participant's share of every trade in it, in whole percent. All shares must sum to 100. */
 export const SHARE_PCT_MIN = 1;
 export const SHARE_PCT_MAX = 99;
 export const SHARE_PCT_TOTAL = 100;

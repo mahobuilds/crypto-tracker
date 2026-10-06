@@ -200,6 +200,8 @@ describe('breakdownByWallet', () => {
     const wallet = (id: string, name: string, transactionCount: number) => ({
       id,
       name,
+      scope: 'personal' as const,
+      participants: [],
       transactionCount,
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',

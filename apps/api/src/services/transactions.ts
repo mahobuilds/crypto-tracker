@@ -8,35 +8,43 @@ import {
   convertToUsd,
   findTimelineViolation,
   ownerSharePct,
-  participantSchema,
   type FxRates,
   type Transaction,
   type TransactionInput,
   type TransactionLike,
-  type TransactionParticipant,
   type TransactionType,
 } from '@crypto-tracker/shared';
 import type { Database } from '../db/client';
-import { transactions, type NewTransactionRow, type TransactionRow } from '../db/schema';
+import {
+  transactions,
+  type NewTransactionRow,
+  type TransactionRow,
+  type WalletRow,
+} from '../db/schema';
 import { ApiError } from '../lib/errors';
 import { newId } from '../lib/ids';
 import { nowIso } from '../lib/time';
-import { resolveWalletId } from './wallets';
+import {
+  parseParticipants,
+  resolveWallet,
+  splitColumns,
+  walletSplit,
+  type WalletSplit,
+} from './wallets';
 
 function isOneOf<T extends string>(values: readonly T[], value: string): value is T {
   return (values as readonly string[]).includes(value);
 }
 
-/** Parses the JSON `participants` column; malformed data is treated as an empty list. */
-export function parseParticipants(raw: string): TransactionParticipant[] {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return [];
-  }
-  const result = participantSchema.array().safeParse(parsed);
-  return result.success ? result.data : [];
+/** The wallet a trade is written into: its id and the split the trade takes from it. */
+export interface TargetWallet extends WalletSplit {
+  id: string;
+}
+
+export function toTargetWallet(
+  row: Pick<WalletRow, 'id' | 'scope' | 'participants'>,
+): TargetWallet {
+  return { id: row.id, ...walletSplit(row) };
 }
 
 /** Maps a DB row to the public `Transaction` shape. */
@@ -101,19 +109,19 @@ export function toTransactionLike(row: TransactionRow): TransactionLike {
 
 /**
  * Builds a `TransactionLike` for an input that has not been written yet (create/update preview).
- * `walletId` is the resolved wallet, never the raw optional field on the input.
+ * `wallet` is the resolved wallet, never the raw optional field on the input.
  */
 export function inputToLike(
   id: string,
   input: TransactionInput,
   usd: { pricePerUnitUsd: number; feeUsd: number },
   createdAt: string,
-  walletId: string,
+  wallet: TargetWallet,
 ): TransactionLike {
   return {
     id,
     type: input.type,
-    walletId,
+    walletId: wallet.id,
     coinId: input.coinId,
     coinSymbol: input.coinSymbol,
     coinName: input.coinName,
@@ -122,7 +130,7 @@ export function inputToLike(
     feeUsd: usd.feeUsd,
     occurredAt: input.occurredAt,
     createdAt,
-    ownerSharePct: ownerSharePct(input.scope, input.participants),
+    ownerSharePct: ownerSharePct(wallet.scope, wallet.participants),
   };
 }
 
@@ -196,15 +204,14 @@ export function inputToRow(
   usd: { pricePerUnitUsd: number; feeUsd: number },
   createdAt: string,
   updatedAt: string,
-  walletId: string,
+  wallet: TargetWallet,
 ): NewTransactionRow {
   return {
     id,
     userId,
     type: input.type,
-    scope: input.scope,
-    participants: JSON.stringify(input.scope === 'group' ? input.participants : []),
-    walletId,
+    ...splitColumns(wallet),
+    walletId: wallet.id,
     coinId: input.coinId,
     coinSymbol: input.coinSymbol,
     coinName: input.coinName,
@@ -228,7 +235,7 @@ export async function createTransaction(
   fx: FxRates,
 ): Promise<Transaction> {
   const input = withCalculatedFee(rawInput);
-  const walletId = await resolveWalletId(db, userId, input.walletId);
+  const wallet = toTargetWallet(await resolveWallet(db, userId, input.walletId));
   const existingRows = await listTransactions(db, userId);
   const existing = existingRows.map(toTransactionLike);
   const usd = normalizeUsd(input, fx);
@@ -237,12 +244,12 @@ export async function createTransaction(
 
   assertTimelineValid(existing, {
     kind: 'create',
-    transaction: inputToLike(id, input, usd, createdAt, walletId),
+    transaction: inputToLike(id, input, usd, createdAt, wallet),
   });
 
   const [row] = await db
     .insert(transactions)
-    .values(inputToRow(id, userId, input, usd, createdAt, createdAt, walletId))
+    .values(inputToRow(id, userId, input, usd, createdAt, createdAt, wallet))
     .returning();
   return rowToTransaction(row as TransactionRow);
 }
@@ -261,23 +268,27 @@ export async function updateTransaction(
     throw new ApiError(404, 'NOT_FOUND', 'Transaction not found');
   }
 
-  // Editing keeps the trade in its wallet unless the input names another one.
-  const walletId =
-    input.walletId === undefined
-      ? current.walletId
-      : await resolveWalletId(db, userId, input.walletId);
+  // Editing keeps the trade in its wallet unless the input names another one. A trade that
+  // moves takes its new wallet's split; one that stays keeps its own, which already matches
+  // the wallet unless it was recorded before splits moved onto wallets.
+  const walletRow = await resolveWallet(db, userId, input.walletId ?? current.walletId);
+  const wallet = toTargetWallet(
+    walletRow.id === current.walletId
+      ? { id: current.walletId, scope: current.scope, participants: current.participants }
+      : walletRow,
+  );
   const existing = existingRows.map(toTransactionLike);
   const usd = normalizeUsd(input, fx);
   const updatedAt = nowIso();
 
   assertTimelineValid(existing, {
     kind: 'update',
-    transaction: inputToLike(id, input, usd, current.createdAt, walletId),
+    transaction: inputToLike(id, input, usd, current.createdAt, wallet),
   });
 
   const [row] = await db
     .update(transactions)
-    .set(inputToRow(id, userId, input, usd, current.createdAt, updatedAt, walletId))
+    .set(inputToRow(id, userId, input, usd, current.createdAt, updatedAt, wallet))
     .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
     .returning();
   return rowToTransaction(row as TransactionRow);

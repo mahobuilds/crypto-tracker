@@ -14,13 +14,14 @@ import { nowIso } from '../lib/time';
 import { requireAuth } from '../middleware/auth';
 import { resolveRows } from '../services/import';
 import { snapshotAfterChange } from '../services/portfolio';
-import { resolveWalletId } from '../services/wallets';
+import { resolveWallet } from '../services/wallets';
 import {
   assertTimelineValid,
   inputToLike,
   inputToRow,
   listTransactions,
   normalizeUsd,
+  toTargetWallet,
   toTransactionLike,
 } from '../services/transactions';
 import type { AppEnv } from '../types';
@@ -61,7 +62,7 @@ export function createImportRoutes(deps: ImportRoutesDeps): Hono<AppEnv> {
 
     const db = c.get('db');
     const userId = c.get('user').id;
-    const walletId = await resolveWalletId(db, userId, rawWalletId);
+    const wallet = toTargetWallet(await resolveWallet(db, userId, rawWalletId));
     const settings = await getOrCreateSettings(db, userId);
 
     const parseResult = parseTransactionsCsv(csv, { defaultCurrency: settings.baseCurrency });
@@ -91,10 +92,10 @@ export function createImportRoutes(deps: ImportRoutesDeps): Hono<AppEnv> {
       const id = newId();
       const createdAt = nowIso();
       const usd = normalizeUsd(row.input, fx);
-      const like = inputToLike(id, row.input, usd, createdAt, walletId);
+      const like = inputToLike(id, row.input, usd, createdAt, wallet);
       assertTimelineValid(timeline, { kind: 'create', transaction: like });
       timeline = applyChange(timeline, { kind: 'create', transaction: like });
-      return [inputToRow(id, userId, row.input, usd, createdAt, createdAt, walletId)];
+      return [inputToRow(id, userId, row.input, usd, createdAt, createdAt, wallet)];
     });
 
     for (const row of prepared) {
